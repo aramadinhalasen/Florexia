@@ -1,0 +1,3614 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Poppins:wght@400;500;600;700;800&family=Cinzel:wght@600;700;800&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FLOREXİA</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" crossorigin="anonymous"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js" crossorigin="anonymous"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
+<style>
+  :root {
+    --pink: #E8558A;
+    --pink-deep: #E88CAF;
+    --pink-hot: #D9436B;
+    --black: #0E0A0C;
+    --panel: #1A1216;
+    --text: #FBEFF3;
+    --muted: #C79AAB;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--black);
+    color: var(--text);
+    font-family: 'Poppins', 'Segoe UI', system-ui, sans-serif;
+    overflow: hidden;
+  }
+  button {
+    font-family: 'Cinzel', 'Poppins', serif;
+    letter-spacing: 0.5px;
+  }
+  #app { position: relative; width: 100vw; height: 100vh; }
+
+  /* ---------- SPLASH ---------- */
+  #splash {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at center, #2A1620 0%, #0E0A0C 70%);
+    z-index: 100;
+    animation: splashOut 0.6s ease 2.2s forwards;
+  }
+  @keyframes splashOut { to { opacity: 0; visibility: hidden; } }
+  #splash h1 {
+    font-family: 'Alex Brush', cursive;
+    font-size: 20vw;
+    letter-spacing: 0.3vw;
+    background: linear-gradient(135deg, var(--pink) 0%, var(--pink-hot) 60%, #7A1230 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: logoPulse 1.8s ease-in-out infinite;
+    text-align: center;
+  }
+  @keyframes logoPulse {
+    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(217,67,107,0.4)); }
+    50% { transform: scale(1.04); filter: drop-shadow(0 0 24px rgba(217,67,107,0.7)); }
+  }
+  #splash .tagline {
+    position: absolute; bottom: 8vh; left: 0; right: 0; text-align: center;
+    color: var(--muted); font-size: 3vw; letter-spacing: 0.4vw; text-transform: uppercase;
+  }
+
+  /* ---------- VIDEO BACKGROUND ---------- */
+  #bgVideo {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; z-index: 0; opacity: 0.55;
+  }
+  #bgOverlay {
+    position: absolute; inset: 0; z-index: 1;
+    background: linear-gradient(180deg, rgba(14,10,12,0.75) 0%, rgba(14,10,12,0.55) 40%, rgba(14,10,12,0.85) 100%);
+  }
+
+  /* ---------- SCREENS ---------- */
+  .screen {
+    position: absolute; inset: 0; z-index: 2;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .screen.active { display: flex; }
+
+  /* ---------- AUTH ---------- */
+  #authCard {
+    background: rgba(26,18,22,0.9);
+    border: 1px solid rgba(232,140,175,0.3);
+    border-radius: 18px;
+    padding: 3vh 3vw;
+    width: min(90vw, 480px);
+    backdrop-filter: blur(6px);
+  }
+  #authCard h2 {
+    font-family: 'Alex Brush', cursive;
+    text-align: center; font-size: 3.2rem; margin-bottom: 1.5vh;
+    color: var(--pink);
+  }
+  .authTabs { display: flex; gap: 8px; margin-bottom: 2vh; }
+  .authTabs button {
+    flex: 1; padding: 10px; border-radius: 10px; border: 1px solid rgba(232,140,175,0.3);
+    background: transparent; color: var(--muted); font-weight: 700; cursor: pointer; font-size: 0.85rem;
+  }
+  .authTabs button.active { background: rgba(217,67,107,0.18); color: var(--text); border-color: var(--pink-hot); }
+  #authCard input { width: 100%; padding: 12px 14px; border-radius: 10px; margin-bottom: 10px;
+    background: #150F12; border: 1px solid rgba(232,140,175,0.25); color: var(--text); font-size: 0.95rem; outline: none; }
+  #authCard button.primary {
+    width: 100%; padding: 13px; border-radius: 10px; border: none; font-weight: 800; font-size: 0.95rem;
+    background: linear-gradient(135deg, var(--pink-hot), #8A1438); color: #fff; cursor: pointer; margin-top: 6px;
+  }
+  #authError { color: #FF8FA8; font-size: 0.8rem; text-align: center; min-height: 18px; margin-top: 6px; }
+
+  /* ---------- TOP NAV ---------- */
+  #topNav {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 5;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.5vh 2vw;
+  }
+  #topNav .navGroup { display: flex; gap: 10px; }
+  .navBtn {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: rgba(26,18,22,0.75); border: 1px solid rgba(232,140,175,0.25);
+    border-radius: 12px; padding: 8px 14px; color: var(--text); cursor: pointer;
+    font-size: 0.7rem; font-weight: 700; min-width: 64px;
+  }
+  .navBtn .ic { font-size: 1.2rem; }
+  .navBtn:active { background: rgba(217,67,107,0.25); }
+  #settingsBtn {
+    background: rgba(26,18,22,0.75); border: 1px solid rgba(232,140,175,0.25);
+    border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; cursor: pointer; color: var(--text);
+  }
+
+  /* ---------- LOBBY CONTENT ---------- */
+  #lobbyContent {
+    display: flex; flex-direction: column; align-items: center; gap: 2vh;
+  }
+  #lobbyContent .logoSmall {
+    font-family: 'Alex Brush', cursive;
+    font-size: 4rem; letter-spacing: 2px;
+    background: linear-gradient(135deg, var(--pink), var(--pink-hot));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .roomBtns { display: flex; gap: 14px; }
+  .roomBtns button {
+    padding: 14px 28px; border-radius: 12px; border: none; font-weight: 800; font-size: 1rem; cursor: pointer;
+  }
+  .roomBtns .create { background: linear-gradient(135deg, var(--pink-hot), #8A1438); color: #fff; }
+  .roomBtns .join { background: rgba(26,18,22,0.85); color: var(--pink); border: 1px solid var(--pink-hot); }
+
+  /* ---------- SIDE PANEL (placeholders) ---------- */
+  #sidePanel {
+    position: absolute; inset: 0; z-index: 10; display: none;
+    background: rgba(10,7,8,0.85); align-items: center; justify-content: center;
+  }
+  #sidePanel.active { display: flex; }
+  #sidePanelBox {
+    background: var(--panel); border: 1px solid rgba(232,140,175,0.3); border-radius: 18px;
+    padding: 4vh 4vw; width: min(85vw, 520px); text-align: center; position: relative;
+  }
+  #sidePanelBox h3 { color: var(--pink); font-size: 1.4rem; margin-bottom: 1vh; }
+  #sidePanelBox p { color: var(--muted); font-size: 0.85rem; }
+  #sidePanelClose {
+    position: absolute; top: 10px; right: 14px; background: none; border: none;
+    color: var(--muted); font-size: 1.3rem; cursor: pointer;
+  }
+
+  .hint { color: var(--muted); font-size: 0.75rem; text-align: center; }
+  /* Dikey modda ekranı kaplayıp "telefonu yatay çevir" uyarısı gösteren katman.
+     Yatay moda geçince otomatik kayboluyor (CSS orientation media query). */
+  #rotateOverlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 100000;
+    background: #0B060C;
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 18px; text-align: center; padding: 24px;
+  }
+  #rotateOverlay .icon { font-size: 3.2rem; animation: rotateHint 1.6s ease-in-out infinite; }
+  @keyframes rotateHint { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(90deg); } }
+  @media (orientation: portrait) {
+    #rotateOverlay { display: flex; }
+    #app { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="rotateOverlay">
+  <div class="icon">📱</div>
+  <div style="color:var(--pink); font-weight:800; font-size:1.1rem;">Florexia yan (yatay) modda oynanır</div>
+  <div style="color:var(--muted); font-size:0.85rem; max-width:280px;">Devam etmek için telefonunu yatay çevir. Ekran döndürme kilidi açıksa otomatik geçer.</div>
+</div>
+<div id="app">
+  <input type="file" id="photoUploadInput" accept="image/*" style="display:none" onchange="handlePhotoFileSelected(event)">
+
+  <!-- Video arka plan kaldırıldı, düz siyah arka plan kullanılıyor -->
+  <div id="bgOverlay"></div>
+
+  <!-- SPLASH -->
+  <div id="splash">
+    <h1>FLOREX<span style="color:#D9436B">İ</span>A</h1>
+    <div class="tagline">gece bahçesinde bir katil dolaşıyor</div>
+  </div>
+  <script>
+    // CSS animasyonu bazı önizleme/sandbox ortamlarında çalışmayabiliyor; bu durumda splash ekranı
+    // görünmez şekilde tüm tıklamaları engelleyip bloke ediyor. JS ile garanti altına alıyoruz.
+    setTimeout(function () {
+      var splash = document.getElementById('splash');
+      if (splash) { splash.style.display = 'none'; splash.style.pointerEvents = 'none'; }
+    }, 2400);
+  </script>
+
+  <!-- AUTH SCREEN -->
+  <div class="screen active" id="authScreen">
+    <div id="authCard">
+      <h2>FLOREXİA</h2>
+      <div class="authTabs">
+        <button class="active" id="tabLogin" onclick="switchAuthTab('login')">Giriş Yap</button>
+        <button id="tabRegister" onclick="switchAuthTab('register')">Kayıt Ol</button>
+      </div>
+      <div id="loginForm">
+        <input type="text" id="loginName" placeholder="Kullanıcı adı">
+        <input type="password" id="loginPass" placeholder="Şifre">
+        <button class="primary" onclick="doLogin()">Bahçeye Gir</button>
+      </div>
+      <div id="registerForm" style="display:none;">
+        <input type="text" id="regName" placeholder="Kullanıcı adı">
+        <input type="password" id="regPass" placeholder="Şifre">
+        <input type="password" id="regPass2" placeholder="Şifre (tekrar)">
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+          <button type="button" id="genderKiz" class="active" onclick="pickGender('kiz')" style="flex:1; padding:10px; border-radius:8px; border:1px solid rgba(232,140,175,0.3); background:rgba(217,67,107,0.15); color:var(--text); font-weight:700; cursor:pointer;">🌸 Kız</button>
+          <button type="button" id="genderErkek" onclick="pickGender('erkek')" style="flex:1; padding:10px; border-radius:8px; border:1px solid rgba(232,140,175,0.3); background:transparent; color:var(--muted); font-weight:700; cursor:pointer;">🖤 Erkek</button>
+        </div>
+        <select id="regLang" style="width:100%; padding:10px; border-radius:8px; margin-bottom:10px; background:#150F12; border:1px solid rgba(232,140,175,0.25); color:var(--text);">
+          <option value="tr">Türkçe</option>
+          <option value="en">English</option>
+        </select>
+        <button class="primary" onclick="doRegister()">Hesap Oluştur</button>
+      </div>
+      <div id="authError"></div>
+    </div>
+  </div>
+
+  <!-- LOBBY SCREEN -->
+  <div class="screen" id="lobbyScreen">
+    <div id="topNav">
+      <div class="navGroup">
+        <div class="navBtn" onclick="openStorePanel()"><span class="ic">🛍️</span>Mağaza</div>
+        <div class="navBtn" onclick="openWardrobePanel()"><span class="ic">👗</span>Gardırop</div>
+        <div class="navBtn" onclick="openPanel('profile')"><span class="ic">🌸</span>Profil</div>
+        <div class="navBtn" onclick="openMissionsPanel()"><span class="ic">🎯</span>Görevler</div>
+        <div class="navBtn" onclick="openFriendsPanel()"><span class="ic">💌</span>Arkadaşlar</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <div id="lobbyDiamondBadge" style="background:rgba(26,18,22,0.85); border:1px solid var(--pink-hot); border-radius:12px; padding:8px 14px; color:var(--pink-hot); font-weight:800; font-size:0.85rem;">💎 <span id="lobbyDiamondCount">0</span></div>
+        <div id="leaderboardBtn" onclick="openLeaderboardPanel()" style="cursor:pointer; font-size:1.3rem;">📋</div>
+        <div id="settingsBtn" onclick="openPanel('settings')">⚙️</div>
+      </div>
+    </div>
+
+    <div id="lobbyContent">
+      <div class="logoSmall">FLOREXİA</div>
+      <div class="roomBtns">
+        <button class="create" onclick="createRoom()">Oda Kur</button>
+        <button class="join" onclick="joinRoomPrompt()">Odaya Katıl</button>
+      </div>
+      <div class="hint">Hoş geldin, <span id="welcomeName">Oyuncu</span> 🌿</div>
+    </div>
+  </div>
+
+  <!-- ODA (ROOM) SCREEN -->
+  <div class="screen" id="roomScreen">
+    <div id="topNav">
+      <div class="navBtn" onclick="leaveRoom()"><span class="ic">⬅️</span>Çık</div>
+      <div id="roomCodeBadge" style="background:rgba(26,18,22,0.85); border:1px solid var(--pink-hot); border-radius:12px; padding:8px 16px; color:var(--pink); font-weight:800; letter-spacing:2px;"></div>
+      <div class="navBtn" onclick="toggleMusicPanel()"><span class="ic">🎵</span>Müzik</div>
+    </div>
+    <audio id="roomAudioPlayer" loop style="display:none;"></audio>
+
+    <!-- MÜZİK PANELİ -->
+    <div id="musicPanel" style="position:absolute; inset:0; z-index:14; display:none; align-items:center; justify-content:center; background:rgba(10,7,8,0.92);">
+      <div style="background:var(--panel); border:1px solid rgba(232,140,175,0.3); border-radius:18px; padding:2.5vh 4vw; width:min(90vw,440px); position:relative;">
+        <button onclick="toggleMusicPanel()" style="position:absolute; top:10px; right:14px; background:none; border:none; color:var(--muted); font-size:1.3rem; cursor:pointer;">✕</button>
+        <div style="font-size:1.1rem; font-weight:800; color:var(--pink); margin-bottom:14px; text-align:center;">🎵 Oda Müziği</div>
+        <div id="musicHostControls" style="display:none;">
+          <input id="musicUrlInput" placeholder="Müzik dosyası linki (mp3 URL)" style="width:100%; padding:10px; border-radius:8px; margin-bottom:10px; background:#150F12; border:1px solid rgba(232,140,175,0.25); color:var(--text);">
+          <div style="display:flex; gap:8px;">
+            <button onclick="setRoomMusic()" style="flex:1; padding:10px; border-radius:8px; border:none; background:linear-gradient(135deg,var(--pink),var(--pink-hot)); color:#fff; font-weight:700; cursor:pointer;">Yükle</button>
+            <button onclick="toggleRoomMusicPlay()" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--pink-hot); background:transparent; color:var(--pink); font-weight:700; cursor:pointer;" id="musicPlayPauseBtn">▶️ Çal</button>
+          </div>
+          <div style="color:var(--muted); font-size:0.68rem; margin-top:8px;">Sadece host müzik yükleyip başlatabilir/durdurabilir. Telif hakkı olmayan bir mp3 linki kullan.</div>
+        </div>
+        <div id="musicGuestInfo" style="display:none; color:var(--muted); font-size:0.85rem; text-align:center;">Odadaki müziği sadece host değiştirebilir.</div>
+        <div id="musicNowPlaying" style="margin-top:10px; text-align:center; color:var(--muted); font-size:0.78rem;"></div>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; align-items:center; gap:1.4vh; width:min(90vw,560px);">
+
+      <!-- LOBİ (oyun başlamadan önce) -->
+      <div id="roomLobbyPart">
+        <div id="roomPlayers" style="display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-bottom:10px;"></div>
+        <button id="readyBtn" onclick="toggleReady()" style="padding:10px 22px; border-radius:10px; border:none; font-weight:800; cursor:pointer; background:linear-gradient(135deg,#7FBF3F,#4F8A22); color:#0B120D;">Hazırım 🌱</button>
+        <div id="readyCountText" style="text-align:center; color:var(--muted); font-size:0.75rem; margin-top:6px;"></div>
+      </div>
+
+      <!-- OYUN ALANI (oyun başlayınca) -->
+      <div id="gameArea" style="display:none; width:100%; flex-direction:column; align-items:center; gap:1.2vh;">
+        <div id="mapArea" style="width:100%;">
+          <div id="mapViewport" style="position:relative; width:100%; height:32vh; max-height:300px; border-radius:16px; overflow:hidden; border:1px solid rgba(232,140,175,0.25); background:#150F12;">
+            <div id="mapWorld" style="position:absolute; top:0; left:0; height:100%; display:flex; will-change:transform;"></div>
+            <div id="mapTunnelPrompt" onclick="enterSecretRoom()" style="display:none; position:absolute; bottom:10px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.72); color:#fff; padding:7px 16px; border-radius:20px; font-size:0.78rem; font-weight:800; cursor:pointer; white-space:nowrap;">✨ Tünele gir</div>
+            <div id="mapExitPrompt" onclick="exitSecretRoom()" style="display:none; position:absolute; bottom:10px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.72); color:#fff; padding:7px 16px; border-radius:20px; font-size:0.78rem; font-weight:800; cursor:pointer; white-space:nowrap;">⬅️ Tünelden çık</div>
+          </div>
+          <div id="mapJoystickZone" style="width:100%; height:76px; margin-top:8px; touch-action:none; display:flex; align-items:center;">
+            <div id="mapJoystickBase" style="width:70px; height:70px; border-radius:50%; background:rgba(232,140,175,0.12); border:2px solid rgba(232,140,175,0.35); position:relative; margin-left:6px;">
+              <div id="mapJoystickKnob" style="width:32px; height:32px; border-radius:50%; background:var(--pink-hot); position:absolute; left:19px; top:19px; box-shadow:0 2px 6px rgba(0,0,0,0.4); pointer-events:none;"></div>
+            </div>
+          </div>
+        </div>
+        <div id="roleCard" style="width:100%; border-radius:14px; padding:14px; text-align:center;"></div>
+        <div id="actionArea" style="width:100%;"></div>
+        <div id="reportArea" style="width:100%;"></div>
+      </div>
+
+      <!-- İHBAR / TARTIŞMA-OYLAMA ALANI -->
+      <div id="discussionPanel" style="display:none; width:100%; flex-direction:column; align-items:center; gap:1vh; background:rgba(200,29,75,0.12); border:1px solid #C81D4B; border-radius:14px; padding:14px;"></div>
+
+      <div id="roomChatBox" style="width:100%; background:rgba(26,18,22,0.85); border:1px solid rgba(232,140,175,0.25); border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:8px;">
+        <div id="roomChatLabel" style="display:none; color:var(--muted); font-size:0.72rem; text-transform:uppercase; letter-spacing:1px;"></div>
+        <div id="roomChatMessages" style="height:18vh; overflow-y:auto; display:flex; flex-direction:column; gap:6px; font-size:0.85rem;"></div>
+        <div style="display:flex; gap:6px;">
+          <input id="roomChatInput" placeholder="Bahçede fısılda..." style="flex:1; padding:10px; border-radius:8px; background:#150F12; border:1px solid rgba(232,140,175,0.25); color:var(--text); outline:none;">
+          <button onclick="sendRoomChat()" style="padding:0 14px; border-radius:8px; border:none; background:var(--pink-hot); color:#fff; font-weight:800; cursor:pointer;">Gönder</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OYUN SONU (VICTORY) EKRANI -->
+  <div id="gameEndPanel" style="position:absolute; inset:0; z-index:13; display:none; align-items:center; justify-content:center; background:rgba(10,7,8,0.95); flex-direction:column; gap:14px; text-align:center;">
+    <div id="gameEndAvatar" style="width:96px; height:96px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:2.6rem;">🌸</div>
+    <div id="gameEndName" style="font-size:1.3rem; font-weight:800;"></div>
+    <div id="gameEndTitle" class="flx-display" style="font-size:2.4rem; font-weight:800;"></div>
+    <button onclick="backToRoomLobby()" style="margin-top:10px; padding:12px 26px; border-radius:12px; border:none; font-weight:800; background:linear-gradient(135deg, var(--pink-hot), #8A1438); color:#fff; cursor:pointer;">Odaya Dön</button>
+  </div>
+
+  <!-- PROFİL PANELİ (gerçek veri, Firebase'e bağlı) -->
+  <div id="profilePanel" style="position:absolute; inset:0; z-index:11; display:none; align-items:center; justify-content:center; background:rgba(10,7,8,0.92);">
+    <div style="background:var(--panel); border:1px solid rgba(232,140,175,0.3); border-radius:18px; padding:3vh 3vw; width:min(94vw,640px); position:relative; max-height:90vh; overflow-y:auto; display:flex; gap:16px;">
+
+      <button onclick="closeProfilePanel()" style="position:absolute; top:10px; right:14px; background:none; border:none; color:var(--muted); font-size:1.3rem; cursor:pointer; z-index:2;">✕</button>
+
+      <!-- SOL/ORTA: ana içerik -->
+      <div style="flex:1; min-width:0;">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:6px;">
+          <div id="profileAvatarSmall" onclick="editAvatarPhoto()" style="width:56px; height:56px; border-radius:50%; background:linear-gradient(135deg, var(--pink), var(--pink-hot)); display:flex; align-items:center; justify-content:center; font-size:1.6rem; flex-shrink:0; cursor:pointer;" title="Profil fotoğrafını değiştir">🌸</div>
+          <div>
+            <div id="profileName" onclick="editName()" style="font-size:1.5rem; font-weight:800; cursor:pointer;" title="Değiştirmek için dokun"></div>
+            <div style="color:var(--muted); font-size:0.7rem;">Level <span id="profileLevel">1</span> · dokun, ismini değiştir ✏️</div>
+          </div>
+        </div>
+
+        <div id="profileBadges" style="display:flex; flex-wrap:wrap; gap:6px; margin:10px 0;"></div>
+
+        <button onclick="openEditProfile()" style="width:100%; padding:9px; border-radius:10px; border:1px solid var(--pink-hot); background:rgba(217,67,107,0.12); color:var(--pink); font-weight:800; font-size:0.8rem; cursor:pointer; margin-bottom:12px;">✏️ Profili Düzenle</button>
+
+        <div style="color:var(--muted); font-size:0.75rem; margin-bottom:4px;">Bio</div>
+        <div id="profileBioDisplay" onclick="editBio()" style="font-size:0.9rem; color:var(--text); background:#150F12; border:1px solid rgba(232,140,175,0.2); border-radius:10px; padding:10px; cursor:pointer; min-height:20px;" title="Değiştirmek için dokun"></div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:12px 0;">
+          <div style="background:#150F12; border-radius:10px; padding:10px; text-align:center;">
+            <div style="font-size:1.05rem; font-weight:800; color:var(--pink-hot)" id="statPop">0</div>
+            <div style="font-size:0.68rem; color:var(--muted);">Popülerlik</div>
+          </div>
+          <div style="background:#150F12; border-radius:10px; padding:10px; text-align:center;">
+            <div style="font-size:1.05rem; font-weight:800; color:var(--pink-hot)" id="statWins">0</div>
+            <div style="font-size:0.68rem; color:var(--muted);">Kazanılan Oyun</div>
+          </div>
+        </div>
+
+        <div style="background:#150F12; border-radius:10px; padding:10px; margin-bottom:12px; display:flex; align-items:center; gap:8px; font-size:0.8rem; color:var(--muted);">
+          🎵 <span id="profileMusic">Şu an bir şey dinlemiyor</span>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:0.72rem;">
+          <div style="background:#150F12; border-radius:10px; padding:8px;">
+            <div style="color:var(--pink-hot); font-weight:800; margin-bottom:4px;">💎 Destekçiler</div>
+            <div style="color:var(--muted);">Henüz yok</div>
+          </div>
+          <div onclick="openMarriagePanel()" style="background:#150F12; border-radius:10px; padding:8px; cursor:pointer;">
+            <div style="color:var(--pink-hot); font-weight:800; margin-bottom:4px;">💍 Evlilik Listesi</div>
+            <div style="color:var(--muted);" id="profileMarriageSummary">Henüz yok</div>
+          </div>
+          <div style="background:#150F12; border-radius:10px; padding:8px;">
+            <div style="color:var(--pink-hot); font-weight:800; margin-bottom:4px;">🤍 En Yakın Arkadaş</div>
+            <div style="color:var(--muted);">Henüz yok</div>
+          </div>
+          <div style="background:#150F12; border-radius:10px; padding:8px;">
+            <div style="color:var(--pink-hot); font-weight:800; margin-bottom:4px;">🌿 Yakın Arkadaş Listesi</div>
+            <div style="color:var(--muted);">Henüz yok</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SAĞ: aksiyon dikey çubuğu -->
+      <div style="display:flex; flex-direction:column; align-items:center; gap:10px; flex-shrink:0;">
+        <button style="width:40px; height:40px; border-radius:50%; border:1px solid rgba(232,140,175,0.3); background:#150F12; color:var(--pink); cursor:pointer;" title="Engelle">🚫</button>
+        <button style="width:40px; height:40px; border-radius:50%; border:1px solid rgba(232,140,175,0.3); background:#150F12; color:var(--pink); cursor:pointer;" title="Bildir">🔔</button>
+        <div id="profileAvatarBig" onclick="openWardrobePanel()" style="width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg, var(--pink), var(--pink-hot)); background-clip: padding-box; display:flex; align-items:center; justify-content:center; font-size:1.8rem; cursor:pointer; border:3px solid var(--pink-hot);" title="Avatarı değiştir">🌸</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFİL DÜZENLE PANELİ -->
+  <div id="editProfilePanel" style="position:absolute; inset:0; z-index:12; display:none; align-items:center; justify-content:center; background:rgba(10,7,8,0.92);">
+    <div style="background:var(--panel); border:1px solid rgba(232,140,175,0.3); border-radius:18px; padding:3vh 4vw; width:min(90vw,440px); position:relative;">
+      <button onclick="closeEditProfile()" style="position:absolute; top:10px; right:14px; background:none; border:none; color:var(--muted); font-size:1.3rem; cursor:pointer;">✕</button>
+      <div style="font-size:1.2rem; font-weight:800; color:var(--pink); margin-bottom:2vh; text-align:center;">✏️ Profili Düzenle</div>
+
+      <div style="color:var(--muted); font-size:0.78rem; margin-bottom:4px;">İsim <span style="color:#7FBF3F;">(ücretsiz)</span></div>
+      <input id="editNameInput" maxlength="16" placeholder="İsim" style="width:100%; padding:11px 12px; border-radius:10px; margin-bottom:12px; background:#150F12; border:1px solid rgba(232,140,175,0.25); color:var(--text); font-size:0.95rem; outline:none;">
+
+      <div style="color:var(--muted); font-size:0.78rem; margin-bottom:4px;">Bio <span style="color:#7FBF3F;">(ücretsiz)</span></div>
+      <textarea id="editBioInput" maxlength="120" placeholder="Kendinden bahset..." style="width:100%; min-height:80px; padding:11px 12px; border-radius:10px; margin-bottom:16px; background:#150F12; border:1px solid rgba(232,140,175,0.25); color:var(--text); font-size:0.9rem; outline:none; resize:none; font-family:inherit;"></textarea>
+
+      <button onclick="editAvatarPhoto()" style="width:100%; padding:11px; border-radius:10px; border:1px solid rgba(232,140,175,0.25); background:#150F12; color:var(--pink); font-weight:700; cursor:pointer; margin-bottom:12px;">🌸 Profil Fotoğrafı/GIF Değiştir</button>
+
+      <button onclick="saveEditProfile()" style="width:100%; padding:13px; border-radius:10px; border:none; font-weight:800; background:linear-gradient(135deg, var(--pink-hot), #8A1438); color:#fff; cursor:pointer;">Kaydet</button>
+      <div id="editProfileMsg" style="text-align:center; color:#7FBF3F; font-size:0.8rem; margin-top:8px; min-height:16px;"></div>
+    </div>
+  </div>
+
+  <!-- GÖREVLER PANELİ -->
+  <div id="missionsPanel" style="position:absolute; inset:0; z-index:11; display:none; align-items:center; justify-content:center; background:rgba(10,7,8,0.92);">
+    <div style="background:var(--panel); border:1px solid rgba(232,140,175,0.3); border-radius:18px; padding:3vh 4vw; width:min(92vw,540px); position:relative; max-height:88vh; overflow-y:auto;">
+      <button onclick="closeMissionsPanel()" style="position:absolute; top:10px; right:14px; background:none; border:none; color:var(--muted); font-size:1.3rem; cursor:pointer;">✕</button>
+      <div style="font-size:1.3rem; font-weight:800; color:var(--pink); margin-bottom:2vh; text-align:center;">🎯 Görevler</div>
+      <div id="missionsList" style="display:flex; flex-direction:column; gap:10px;"></div>
+    </div>
+  </div>
+
+  <!-- MAĞAZA PANELİ -->
+  <div id="storePanel" style="position:absolute; inset:0; z-index:11; display:none; align-items:center; justify-content:center; background:rgba(10,7,8,0.92);">
+    <div style="background:var(--panel); border:1px solid rgba(232,140,175,0.3); border-radius:18px; padding:3vh 4vw; width:min(94vw,640px); position:relative; max-height:90vh; overflow-y:auto;">
+      <button onclick="closeStorePanel()" style="position:absolute; top:10px; right:14px; background:none; border:none; color:var(--muted); font-size:1.3rem; cursor:pointer;">✕</button>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2vh;">
+        <div style="font-size:1.3rem; font-weight:800; color:var(--pink);">🛍️ Mağaza</div>
+        <div style="background:#150F12; border:1px solid rgba(232,140,175,0.25); border-radius:20px; padding:6px 14px; font-weight:800; color:var(--pink-hot); font-size:0.85rem;">💎 <span id="storeDiamondCount">0</span></div>
+      </div>
+
+      <div style="display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap;">
+        <button class="storeTab active" onclick="switchStoreTab('bicak')" data-tab="bicak" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--pink-hot); background:rgba(217,67,107,0.15); color:var(--text); font-weight:700; cursor:pointer; font-size:0.78rem;">🔪 Bıçak</button>
+        <button class="storeTab" onclick="switchStoreTab('silah')" data-tab="silah" style="flex:1; padding:8px; border-radius:8px; border:1px solid rgba(232,140,175,0.25); background:#150F12; color:var(--muted); font-weight:700; cursor:pointer; font-size:0.78rem;">🔫 Silah</button>
+        <button class="storeTab" onclick="switchStoreTab('cerceve')" data-tab="cerceve" style="flex:1; padding:8px; border-radius:8px; border:1px solid rgba(232,140,175,0.25); background:#150F12; color:var(--muted); font-weight:700; cursor:pointer; font-size:0.78rem;">🖼️ Çerçeve</button>
+        <button class="storeTab" onclick="switchStoreTab('yuzuk')" data-tab="yuzuk" style="flex:1; padding:8px; border-radius:8px; border:1px solid rgba(232,140,175,0.25); background:#150F12; color:var(--muted); font-weight:700; cursor:pointer; font-size:0.78rem;">💒 Yüzük</button>
+        <button class="storeTab" onclick="switchStoreTab('sapka')" data-tab="sapka" style="flex:1; padding:8px; border-radius:8px; border:1px solid rgba(232,140,175,0.25); background:#150F12; color:var(--muted); font-weight:700; cursor:pointer; font-size:0.78rem;">🎩 Şapka</button>
+        <button class="storeTab" onclick="switchStoreTab('pandufl')" data-tab="pandufl" style="flex:1; padding:8px; border-radius:8px; border:1px solid rgba(232,140,175,0.25); background:#150F12; color:var(--muted); font-weight:700; cursor:pointer; font-size:0.78rem;">🧦 Pandufl</button>
+        <button class="storeTab" onclick="switchStoreTab('kanat')" data-tab="kanat" style="flex:1; padding:8px; border-radius:8px; border:1px solid rgba(232,140,175,0.25); background:#150F12; color:var(--muted); font-weight:700; cursor:pointer; font-size:0.78rem;">🕊️ Kanat</button>
+      </div>
+
+      <div id="storeItemsGrid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;"></div>
+    </div>
+  </div>
+
+  <!-- HEDİYE GÖNDER PANELİ -->
+  <div id="giftSendPanel" style="position:absolute; inset:0; z-index:16; display:none; align-items:center; justify-content:center; background:rgba(10,7,8,0.96);">
+    <div style="background:var(--panel); border:1px solid rgba(232,140,175,0.3); border-radius:18px; padding:2.5vh 3vw; width:min(90vw,440px); position:relative;">
+      <button onclick="closeGiftSend()" style="position:absolute; top:10px; right:14px; background:none; border:none; color:var(--muted); font-size:1.3rem; cursor:pointer;">✕</button>
+      <div id="giftSendTitle" style="font-size:1.1rem; font-weight:800; color:var(--pink); margin-bottom:12px; text-align:center;"></div>
+      <div style="color:var(--muted); font-size:0.78rem; margin-bottom:6px;">Kime göndermek istersin? (arkadaşların)</div>
+      <div id="giftFriendPicker" style="display:flex; flex-direction:column; gap:6px; max-height:26vh; overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <!-- EVLİLİK TEKLİFİ (YÜZÜK GÖNDER) PANELİ -->
+  <div id="marriageProposePanel" style="position:absolute; inset:0; z-index:16; display:none; align-items:center; justify-content:center; background:rgba(10,7,8,0.96);">
+    <div style="background:var(--panel); border:1px solid rgba(232,140,175,0.3); border-radius:18px; padding:2.5vh 3vw; width:min(90vw,440px); position:relative;">
+      <button onclick="closeMarriagePropose()" style="position:absolute; top:10px; right:14px; background:none; border:none; color:var(--muted); font-size:1.3rem; cursor:pointer;">✕</button>
+      <div id="marriageProposeTitle" style="font-size:1.1rem; font-weight:800; color:var(--pink); margin-bottom:12px; text-align:center;"></div>
+      <div style="color:var(--muted); font-size:0.78rem; margin-bottom:6px;">Kime evlilik teklif etmek istersin? (arkadaşların)</div>
+      <div id="marriageFriendPicker" style="display:flex; flex-direction:column; gap:6px; max-height:26vh; overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <!-- EVLİLİK PANELİ -->
+  <div id="marriagePanel" style="position:absolute; inset:0; z-index:11; display:none; align-items:center; justify-content:center; background:rgba(10,7,8,0.92);">
+    <div style="background:var(--panel); border:1px solid rgba(232,140,175,0.3); border-radius:18px; padding:3vh 4vw; width:min(94vw,560px); position:relative; max-height:88vh; overflow-y:auto;">
+      <button onclick="closeMarriagePanel()" style="position:absolute; top:10px; right:14px; background:none; border:none; color:var(--muted); font-size:1.3rem; cursor:pointer;">✕</button>
+      <div style="font-size:1.3rem; font-weight:800; color:var(--pink); margin-bottom:1.5vh; text-align:center;">💍 Evlilik</div>
+
+      <div id="marriageCurrentBox" style="background:#150F12; border:1px solid rgba(232,140,175,0.25); border-radius:12px; padding:14px; margin-bottom:14px; text-align:center;"></div>
+
+      <div id="marriageProposalsBox" style="margin-bottom:14px;"></div>
+
+      <div style="color:var(--muted); font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Evlilik Listesi</div>
+      <div id="marriageHistoryList" style="display:flex; flex-direction:column; gap:8px;"></div>
+    </div>
+  </div>
+
+  <!-- LİSTELER (LEADERBOARD) PANELİ -->
+  <div id="leaderboardPanel" style="position:absolute; inset:0; z-index:11; display:none; align-items:center; justify-content:center; background:rgba(10,7,8,0.92);">
+    <div style="background:var(--panel); border:1px solid rgba(232,140,175,0.3); border-radius:18px; padding:3vh 4vw; width:min(94vw,560px); position:relative; max-height:88vh; overflow-y:auto;">
+      <button onclick="closeLeaderboardPanel()" style="position:absolute; top:10px; right:14px; background:none; border:none; color:var(--muted); font-size:1.3rem; cursor:pointer;">✕</button>
+      <div style="font-size:1.3rem; font-weight:800; color:var(--pink); margin-bottom:1.5vh; text-align:center;">📋 Listeler</div>
+
+      <div style="display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap;">
+        <button class="leaderTab active" onclick="switchLeaderboardTab('populer')" data-tab="populer" style="flex:1; min-width:120px; padding:8px; border-radius:8px; border:1px solid var(--pink-hot); background:rgba(217,67,107,0.15); color:var(--text); font-weight:700; cursor:pointer; font-size:0.72rem;">💎 Popülerlik</button>
+        <button class="leaderTab" onclick="switchLeaderboardTab('sevilen')" data-tab="sevilen" style="flex:1; min-width:120px; padding:8px; border-radius:8px; border:1px solid rgba(232,140,175,0.25); background:#150F12; color:var(--muted); font-weight:700; cursor:pointer; font-size:0.72rem;">❤️ En Sevilen</button>
+        <button class="leaderTab" onclick="switchLeaderboardTab('evlilik')" data-tab="evlilik" style="flex:1; min-width:120px; padding:8px; border-radius:8px; border:1px solid rgba(232,140,175,0.25); background:#150F12; color:var(--muted); font-weight:700; cursor:pointer; font-size:0.72rem;">💍 En Çok Evlilik Günü</button>
+        <button class="leaderTab" onclick="switchLeaderboardTab('yakinarkadas')" data-tab="yakinarkadas" style="flex:1; min-width:120px; padding:8px; border-radius:8px; border:1px solid rgba(232,140,175,0.25); background:#150F12; color:var(--muted); font-weight:700; cursor:pointer; font-size:0.72rem;">🤍 En Çok Yakın Arkadaş Günü</button>
+      </div>
+
+      <div id="leaderboardList" style="display:flex; flex-direction:column; gap:8px;"></div>
+    </div>
+  </div>
+
+  <!-- MİNİ PROFİL (beğeni) MODALI -->
+  <div id="miniProfileModal" style="position:absolute; inset:0; z-index:17; display:none; align-items:center; justify-content:center; background:rgba(10,7,8,0.96);">
+    <div style="background:var(--panel); border:1px solid rgba(232,140,175,0.3); border-radius:18px; padding:2.5vh 4vw; width:min(90vw,400px); position:relative; text-align:center;">
+      <button onclick="closeMiniProfile()" style="position:absolute; top:10px; right:14px; background:none; border:none; color:var(--muted); font-size:1.3rem; cursor:pointer;">✕</button>
+      <div id="miniProfileBody"></div>
+    </div>
+  </div>
+
+  <div id="wardrobePanel" style="position:absolute; inset:0; z-index:11; display:none; align-items:center; justify-content:center; background:rgba(10,7,8,0.92);">
+    <div style="background:var(--panel); border:1px solid rgba(232,140,175,0.3); border-radius:18px; padding:3vh 4vw; width:min(94vw,620px); position:relative; max-height:90vh; overflow-y:auto;">
+      <button onclick="closeWardrobePanel()" style="position:absolute; top:10px; right:14px; background:none; border:none; color:var(--muted); font-size:1.3rem; cursor:pointer;">✕</button>
+      <div style="font-size:1.3rem; font-weight:800; color:var(--pink); margin-bottom:2vh; text-align:center;">👗 Gardırop</div>
+
+      <div style="display:flex; justify-content:center; align-items:center; gap:14px; margin-bottom:2vh;">
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <button onclick="avatar3D.resetView()" title="Döndür/Sıfırla" style="width:38px; height:38px; border-radius:50%; border:1px solid rgba(232,140,175,0.3); background:#150F12; color:var(--pink); cursor:pointer; font-size:1rem;">↺</button>
+          <button onclick="avatar3D.zoom(-1)" title="Yakınlaş" style="width:38px; height:38px; border-radius:50%; border:1px solid rgba(232,140,175,0.3); background:#150F12; color:var(--pink); cursor:pointer; font-size:1rem;">＋</button>
+          <button onclick="avatar3D.zoom(1)" title="Uzaklaş" style="width:38px; height:38px; border-radius:50%; border:1px solid rgba(232,140,175,0.3); background:#150F12; color:var(--pink); cursor:pointer; font-size:1rem;">－</button>
+        </div>
+        <canvas id="avatarPreview3D" width="220" height="260" style="width:180px; height:212px; touch-action:none; cursor:grab;"></canvas>
+      </div>
+      <div style="text-align:center; color:var(--muted); font-size:0.7rem; margin-top:-1.5vh; margin-bottom:1.5vh;">💡 Döndürmek için avatarı sürükle</div>
+
+      <div style="margin-bottom:14px;">
+        <div style="color:var(--muted); font-size:0.75rem; margin-bottom:6px; text-transform:uppercase; letter-spacing:1px;">Vücut Rengi</div>
+        <div id="bodyColorSwatches" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <div style="color:var(--muted); font-size:0.75rem; margin-bottom:6px; text-transform:uppercase; letter-spacing:1px;">🎩 Şapka (mağazadan aldıkların)</div>
+        <div id="hatEquipRow" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <div style="color:var(--muted); font-size:0.75rem; margin-bottom:6px; text-transform:uppercase; letter-spacing:1px;">🕊️ Kanat (mağazadan aldıkların)</div>
+        <div id="wingsEquipRow" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+      </div>
+
+      <div style="margin-bottom:18px;">
+        <div style="color:var(--muted); font-size:0.75rem; margin-bottom:6px; text-transform:uppercase; letter-spacing:1px;">🧦 Pandufl (mağazadan aldıkların)</div>
+        <div id="slippersEquipRow" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+      </div>
+
+      <div style="margin-bottom:18px;">
+        <div style="color:var(--muted); font-size:0.75rem; margin-bottom:6px; text-transform:uppercase; letter-spacing:1px;">🖼️ Çerçeve (mağazadan aldıkların)</div>
+        <div id="frameEquipRow" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+      </div>
+
+      <button onclick="saveAvatar()" style="width:100%; padding:13px; border-radius:10px; border:none; font-weight:800; background:linear-gradient(135deg, var(--pink-hot), #8A1438); color:#fff; cursor:pointer;">Kaydet 🌸</button>
+      <div id="avatarSaveMsg" style="text-align:center; color:#7FBF3F; font-size:0.8rem; margin-top:8px; min-height:16px;"></div>
+    </div>
+  </div>
+  <div id="friendsPanel" style="position:absolute; inset:0; z-index:11; display:none; align-items:center; justify-content:center; background:rgba(10,7,8,0.92);">
+    <div style="background:var(--panel); border:1px solid rgba(232,140,175,0.3); border-radius:18px; padding:3vh 4vw; width:min(94vw,600px); position:relative; max-height:88vh; overflow-y:auto;">
+      <button onclick="closeFriendsPanel()" style="position:absolute; top:10px; right:14px; background:none; border:none; color:var(--muted); font-size:1.3rem; cursor:pointer;">✕</button>
+      <div style="font-size:1.3rem; font-weight:800; color:var(--pink); margin-bottom:1.5vh; text-align:center;">💌 Arkadaşlar</div>
+
+      <div style="display:flex; gap:6px; margin-bottom:14px;">
+        <input id="addFriendInput" placeholder="Kullanıcı adı yaz..." style="flex:1; padding:10px; border-radius:8px; background:#150F12; border:1px solid rgba(232,140,175,0.25); color:var(--text); outline:none;">
+        <button onclick="sendFriendRequest()" style="padding:0 16px; border-radius:8px; border:none; background:var(--pink-hot); color:#fff; font-weight:800; cursor:pointer;">İstek Gönder</button>
+      </div>
+
+      <div id="friendRequestsBox" style="margin-bottom:14px;"></div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div style="color:var(--muted); font-size:0.8rem; text-transform:uppercase; letter-spacing:1px;">Arkadaş Listesi</div>
+        <button onclick="openGroupCreate()" style="padding:6px 12px; border-radius:8px; border:1px solid var(--pink-hot); background:rgba(217,67,107,0.1); color:var(--pink); font-weight:700; font-size:0.75rem; cursor:pointer;">👥 Grup Kur</button>
+      </div>
+      <div id="friendsList" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;"></div>
+
+      <div style="color:var(--muted); font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Gruplarım</div>
+      <div id="groupsList" style="display:flex; flex-direction:column; gap:8px;"></div>
+    </div>
+  </div>
+
+  <!-- MESAJ (DM) PANELİ -->
+  <div id="dmPanel" style="position:absolute; inset:0; z-index:14; display:none; align-items:center; justify-content:center; background:rgba(10,7,8,0.95);">
+    <div style="background:var(--panel); border:1px solid rgba(232,140,175,0.3); border-radius:18px; padding:2.5vh 3vw; width:min(94vw,540px); position:relative; display:flex; flex-direction:column;">
+      <button onclick="closeDM()" style="position:absolute; top:10px; right:14px; background:none; border:none; color:var(--muted); font-size:1.3rem; cursor:pointer;">✕</button>
+      <div id="dmTitle" style="font-size:1.1rem; font-weight:800; color:var(--pink); margin-bottom:10px; text-align:center;"></div>
+      <div id="dmMessages" style="height:32vh; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:10px; padding:4px;"></div>
+      <div style="display:flex; gap:6px;">
+        <button onclick="attachDMPhoto()" style="padding:0 12px; border-radius:8px; border:1px solid rgba(232,140,175,0.25); background:#150F12; color:var(--pink); cursor:pointer;">📷</button>
+        <input id="dmInput" placeholder="Mesaj yaz..." style="flex:1; padding:10px; border-radius:8px; background:#150F12; border:1px solid rgba(232,140,175,0.25); color:var(--text); outline:none;">
+        <button onclick="sendDM()" style="padding:0 16px; border-radius:8px; border:none; background:var(--pink-hot); color:#fff; font-weight:800; cursor:pointer;">Gönder</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRUP KURMA PANELİ -->
+  <div id="groupCreatePanel" style="position:absolute; inset:0; z-index:15; display:none; align-items:center; justify-content:center; background:rgba(10,7,8,0.96);">
+    <div style="background:var(--panel); border:1px solid rgba(232,140,175,0.3); border-radius:18px; padding:2.5vh 3vw; width:min(90vw,460px); position:relative;">
+      <button onclick="closeGroupCreate()" style="position:absolute; top:10px; right:14px; background:none; border:none; color:var(--muted); font-size:1.3rem; cursor:pointer;">✕</button>
+      <div style="font-size:1.1rem; font-weight:800; color:var(--pink); margin-bottom:12px; text-align:center;">👥 Grup Kur</div>
+      <input id="groupNameInput" placeholder="Grup adı" style="width:100%; padding:10px; border-radius:8px; margin-bottom:10px; background:#150F12; border:1px solid rgba(232,140,175,0.25); color:var(--text); outline:none;">
+      <div style="color:var(--muted); font-size:0.78rem; margin-bottom:6px;">Üye seç (sadece arkadaşların):</div>
+      <div id="groupMemberPicker" style="display:flex; flex-direction:column; gap:6px; max-height:26vh; overflow-y:auto; margin-bottom:14px;"></div>
+      <button onclick="createGroup()" style="width:100%; padding:12px; border-radius:10px; border:none; font-weight:800; background:linear-gradient(135deg, var(--pink-hot), #8A1438); color:#fff; cursor:pointer;">Grubu Oluştur</button>
+    </div>
+  </div>
+
+  <!-- GRUP SOHBET PANELİ -->
+  <div id="groupChatPanel" style="position:absolute; inset:0; z-index:14; display:none; align-items:center; justify-content:center; background:rgba(10,7,8,0.95);">
+    <div style="background:var(--panel); border:1px solid rgba(232,140,175,0.3); border-radius:18px; padding:2.5vh 3vw; width:min(94vw,540px); position:relative; display:flex; flex-direction:column;">
+      <button onclick="closeGroupChat()" style="position:absolute; top:10px; right:14px; background:none; border:none; color:var(--muted); font-size:1.3rem; cursor:pointer;">✕</button>
+      <div id="groupChatTitle" style="font-size:1.1rem; font-weight:800; color:var(--pink); margin-bottom:10px; text-align:center;"></div>
+      <div id="groupChatMessages" style="height:32vh; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:10px; padding:4px;"></div>
+      <div style="display:flex; gap:6px;">
+        <input id="groupChatInput" placeholder="Gruba yaz..." style="flex:1; padding:10px; border-radius:8px; background:#150F12; border:1px solid rgba(232,140,175,0.25); color:var(--text); outline:none;">
+        <button onclick="sendGroupChat()" style="padding:0 16px; border-radius:8px; border:none; background:var(--pink-hot); color:#fff; font-weight:800; cursor:pointer;">Gönder</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDE PANEL (placeholder içerikler) -->
+  <div id="sidePanel">
+    <div id="sidePanelBox">
+      <button id="sidePanelClose" onclick="closePanel()">✕</button>
+      <h3 id="panelTitle">Başlık</h3>
+      <p id="panelBody">İçerik buraya gelecek.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ---------- FIREBASE BAĞLANTISI ----------
+  const firebaseConfig = {
+    apiKey: "AIzaSyCK8Y4HnZJ8pQTV7hfMqRwfre0F13rX_44",
+    authDomain: "florexia-76744.firebaseapp.com",
+    databaseURL: "https://florexia-76744-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "florexia-76744",
+    storageBucket: "florexia-76744.firebasestorage.app",
+    messagingSenderId: "664323884189",
+    appId: "1:664323884189:web:07096063699441f5e04074"
+  };
+  let db;
+  let auth;
+  let firebaseReady = true;
+  function makeOfflineRef() {
+    return {
+      set: () => Promise.resolve(),
+      get: () => Promise.resolve({ val: () => null, exists: () => false }),
+      on: (event, cb) => { cb({ val: () => null, exists: () => false }); return cb; },
+      once: () => Promise.resolve({ val: () => null }),
+      push: () => ({ key: 'offline' }),
+      remove: () => Promise.resolve(),
+      off: () => {},
+      limitToLast: () => makeOfflineRef(),
+      child: () => makeOfflineRef(),
+      transaction: (fn) => {
+        let result; try { result = fn(null); } catch (e) {}
+        return Promise.resolve({ committed: false, snapshot: { val: () => result || null } });
+      },
+      update: () => Promise.resolve(),
+    };
+  }
+  try {
+    if (typeof firebase === 'undefined') throw new Error('Firebase SDK yüklenemedi — internet bağlantısı gerekiyor.');
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    auth = firebase.auth();
+  } catch (e) {
+    firebaseReady = false;
+    console.error('Firebase başlatılamadı:', e.message);
+    db = { ref: () => makeOfflineRef() };
+    auth = { signInWithEmailAndPassword: () => Promise.reject(new Error('offline')), createUserWithEmailAndPassword: () => Promise.reject(new Error('offline')), onAuthStateChanged: () => {}, signOut: () => Promise.resolve(), currentUser: null };
+  }
+
+  window.addEventListener('load', () => {
+    if (!firebaseReady) {
+      const banner = document.createElement('div');
+      banner.textContent = '⚠️ İnternete/Firebase\'e ulaşılamıyor — kayıt, giriş ve oda özellikleri bu ortamda ÇALIŞMAZ. Dosyayı gerçek bir tarayıcıda (internetli) açman gerekiyor.';
+      banner.style.cssText = 'position:fixed; top:0; left:0; right:0; z-index:9999; background:#C81D4B; color:#fff; padding:10px; text-align:center; font-size:0.8rem; font-weight:700;';
+      document.body.appendChild(banner);
+    }
+  });
+
+  // "Butona basınca hiçbir şey olmuyor" durumlarını görünür yapmak için: yakalanmamış herhangi bir
+  // JS hatasını (özellikle sayfa daha ilk yüklenirken oluşanları) ekranda gösteriyoruz. Böylece
+  // sorun sessizce konsolda kaybolmuyor, kullanıcı ekran görüntüsü atabiliyor.
+  let __shownFatalError = false;
+  function showFatalErrorBanner(msg) {
+    if (__shownFatalError) return;
+    __shownFatalError = true;
+    const show = () => {
+      const banner = document.createElement('div');
+      banner.textContent = '⚠️ Bir hata oluştu: ' + msg + ' — bu ekran görüntüsünü Claude\'a gönder.';
+      banner.style.cssText = 'position:fixed; top:0; left:0; right:0; z-index:99999; background:#8A1438; color:#fff; padding:10px; text-align:center; font-size:0.72rem; font-weight:700; word-break:break-word;';
+      document.body.appendChild(banner);
+    };
+    if (document.body) show(); else window.addEventListener('DOMContentLoaded', show);
+  }
+  window.addEventListener('error', e => {
+    const loc = (e && e.filename) ? ' (' + e.filename.split('/').pop() + ':' + e.lineno + ')' : '';
+    showFatalErrorBanner(((e && e.message) || 'bilinmeyen hata') + loc);
+  });
+  window.addEventListener('unhandledrejection', e => showFatalErrorBanner((e && e.reason && e.reason.message) || 'bilinmeyen promise hatası'));
+
+  // Bazı mobil tarayıcılar (özellikle Android Chrome, tam ekrandayken) siteye yön kilidi
+  // koymasına izin veriyor. Bu her yerde çalışmaz (iOS Safari desteklemez, ekran döndürme
+  // kilidi kapalıysa de çalışmaz) — bu yüzden #rotateOverlay her zaman güvenlik ağı olarak duruyor.
+  function tryLockLandscape() {
+    try {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('landscape').catch(() => {});
+      }
+    } catch (e) { /* desteklenmiyorsa sessizce geç, overlay zaten devrede */ }
+  }
+  window.addEventListener('load', tryLockLandscape);
+  document.addEventListener('click', tryLockLandscape, { once: true });
+
+  let currentRoomCode = null;
+  let currentPlayerName = null;
+  let roomListeners = [];
+
+  // ---------- HESAP SİSTEMİ ----------
+  // ÖNEMLİ: Şifre artık Firebase'de (auth/{isim}) tutuluyor — hesabın "kaybolmaması" için tek
+  // doğru kaynak burası. localStorage sadece "beni hatırla" kolaylığı için best-effort kullanılıyor;
+  // localStorage silinse/engellense bile hesabın Firebase'de durduğu için giriş yapabilirsin.
+  function safeLocalGet(key) {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+  function safeLocalSet(key, val) {
+    try { localStorage.setItem(key, val); } catch (e) {}
+  }
+  function safeLocalRemove(key) {
+    try { localStorage.removeItem(key); } catch (e) {}
+  }
+
+  // Firebase Authentication kullanıcı adı değil e-posta istiyor; kullanıcıdan sadece isim/şifre
+  // aldığımız için görünmez, sabit bir e-posta üretiyoruz. Şifre artık DÜZ METİN OLARAK HİÇBİR
+  // YERDE tutulmuyor — Firebase Auth kendi güvenli (hashli) sisteminde saklıyor.
+  function nameToEmail(name) {
+    return name.trim().toLowerCase().replace(/[^a-z0-9]/g, '_') + '@florexia.internal';
+  }
+
+  function switchAuthTab(tab) {
+    document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+    document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
+    document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+    document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+    document.getElementById('authError').textContent = '';
+  }
+
+  let selectedGender = 'kiz';
+  function pickGender(g) {
+    selectedGender = g;
+    document.getElementById('genderKiz').classList.toggle('active', g === 'kiz');
+    document.getElementById('genderErkek').classList.toggle('active', g === 'erkek');
+    document.getElementById('genderKiz').style.background = g === 'kiz' ? 'rgba(217,67,107,0.15)' : 'transparent';
+    document.getElementById('genderKiz').style.color = g === 'kiz' ? 'var(--text)' : 'var(--muted)';
+    document.getElementById('genderErkek').style.background = g === 'erkek' ? 'rgba(217,67,107,0.15)' : 'transparent';
+    document.getElementById('genderErkek').style.color = g === 'erkek' ? 'var(--text)' : 'var(--muted)';
+  }
+
+  function doRegister() {
+    const name = document.getElementById('regName').value.trim();
+    const pass = document.getElementById('regPass').value;
+    const pass2 = document.getElementById('regPass2').value;
+    const lang = document.getElementById('regLang').value;
+    const err = document.getElementById('authError');
+    err.textContent = '';
+    if (!name || !pass) { err.textContent = 'Kullanıcı adı ve şifre gerekli.'; return; }
+    if (!/^[a-zA-Z0-9_ğüşöçİĞÜŞÖÇı]+$/.test(name)) { err.textContent = 'Kullanıcı adında sadece harf/rakam kullan.'; return; }
+    if (pass.length < 6) { err.textContent = 'Şifre en az 6 karakter olmalı.'; return; }
+    if (pass !== pass2) { err.textContent = 'Şifreler uyuşmuyor.'; return; }
+
+    // Bu isimde eski (güvenlik güncellemesi öncesi) bir profil duruyor olabilir — üzerine
+    // yazıp verilerini silmemek için önce kontrol ediyoruz, varsa "Giriş Yap"a yönlendiriyoruz.
+    db.ref('users/' + name).get().then(existingSnap => {
+      if (existingSnap.exists()) {
+        err.textContent = 'Bu isimde zaten bir hesap var — "Giriş Yap" sekmesini dene (eski hesabınsa şifren otomatik tanınır).';
+        return;
+      }
+      proceedWithRegistration(name, pass, lang, err);
+    });
+  }
+
+  function proceedWithRegistration(name, pass, lang, err) {
+    const usernameRef = db.ref('usernames/' + name.toLowerCase());
+    usernameRef.transaction(existing => {
+      if (existing) return; // zaten var, dokunma (undefined dönünce abort olur)
+      return { name, reserving: true };
+    }).then(result => {
+      if (!result.committed) { err.textContent = 'Bu kullanıcı adı zaten alınmış.'; return; }
+      return auth.createUserWithEmailAndPassword(nameToEmail(name), pass).then(cred => {
+        const uid = cred.user.uid;
+        return Promise.all([
+          db.ref('usernames/' + name.toLowerCase()).set({ name, uid }),
+          db.ref('users/' + name).set({
+            authUid: uid, bio: 'Not bio yet', level: 1, wins: 0, popularity: 0, diamonds: 0,
+            gender: selectedGender, lang, nameColor: '', joinedAt: Date.now()
+          })
+        ]).then(() => {
+          safeLocalSet('flx_currentUser', name);
+          enterLobby(name);
+        });
+      }).catch(e => {
+        db.ref('usernames/' + name.toLowerCase()).remove(); // rezervasyonu geri al
+        if (e.code === 'auth/email-already-in-use') err.textContent = 'Bu kullanıcı adı zaten alınmış.';
+        else if (e.code === 'auth/weak-password') err.textContent = 'Şifre çok zayıf, en az 6 karakter olmalı.';
+        else err.textContent = 'Kayıt sırasında bir hata oluştu: ' + e.message;
+        console.error('doRegister hatası:', e);
+      });
+    });
+  }
+
+  function doLogin() {
+    const name = document.getElementById('loginName').value.trim();
+    const pass = document.getElementById('loginPass').value;
+    const err = document.getElementById('authError');
+    err.textContent = '';
+    if (!name || !pass) { err.textContent = 'Kullanıcı adı ve şifre gerekli.'; return; }
+    auth.signInWithEmailAndPassword(nameToEmail(name), pass).then(() => {
+      safeLocalSet('flx_currentUser', name);
+      enterLobby(name);
+    }).catch(e => {
+      if (e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential' || e.code === 'auth/invalid-login-credentials') {
+        // Firebase artık "hesap yok" ile "şifre yanlış" hatalarını güvenlik amacıyla tek kod altında
+        // birleştiriyor, bu yüzden ayrım yapamıyoruz. Önce eski (güvenlik güncellemesi öncesi) bir
+        // hesap olup olmadığına bakıyoruz; değilse zaten "yanlış" mesajını orada da göstereceğiz.
+        tryMigrateLegacyAccount(name, pass, err);
+      } else {
+        err.textContent = 'Giriş sırasında bir hata oluştu: ' + e.message;
+      }
+      console.error('doLogin hatası:', e);
+    });
+  }
+
+  // Eski (güvenlik güncellemesi öncesi) hesaplar users/{isim} altında duruyor ama Firebase Auth'ta
+  // karşılığı yok. Eski şifre auth/{isim}/pass altında hâlâ duruyorsa ve girilen şifre eşleşiyorsa,
+  // profildeki HİÇBİR VERİYE dokunmadan (elmas, envanter, rozet vs.) sadece eksik olan Auth
+  // kaydını/authUid alanını ekleyip hesabı yeni sisteme "evlat ediniyoruz".
+  function tryMigrateLegacyAccount(name, pass, err) {
+    Promise.all([
+      db.ref('users/' + name).get(),
+      db.ref('auth/' + name).get()
+    ]).then(([userSnap, legacyAuthSnap]) => {
+      if (!userSnap.exists()) { err.textContent = 'Kullanıcı adı veya şifre hatalı.'; return; }
+      const legacy = legacyAuthSnap.val();
+      if (!legacy || legacy.pass !== pass) { err.textContent = 'Kullanıcı adı veya şifre hatalı.'; return; }
+      if (userSnap.val().authUid) { err.textContent = 'Kullanıcı adı veya şifre hatalı.'; return; } // zaten taşınmış, farklı bir sorun var
+
+      auth.createUserWithEmailAndPassword(nameToEmail(name), pass).then(cred => {
+        const uid = cred.user.uid;
+        return Promise.all([
+          db.ref('users/' + name + '/authUid').set(uid),
+          db.ref('usernames/' + name.toLowerCase()).set({ name, uid }),
+          db.ref('auth/' + name).remove() // eski düz-metin şifre artık gereksiz, temizle
+        ]);
+      }).then(() => {
+        safeLocalSet('flx_currentUser', name);
+        enterLobby(name);
+      }).catch(e2 => {
+        err.textContent = 'Hesap taşınırken bir hata oluştu: ' + e2.message;
+        console.error('tryMigrateLegacyAccount hatası:', e2);
+      });
+    });
+  }
+
+  function enterLobby(name) {
+    currentPlayerName = name;
+    document.getElementById('authScreen').classList.remove('active');
+    document.getElementById('lobbyScreen').classList.add('active');
+    document.getElementById('welcomeName').textContent = name;
+
+    // elmas sayacı canlı güncellensin (mağazada harcayınca/görevden kazanınca anında değişsin)
+    db.ref('users/' + name + '/diamonds').on('value', snap => {
+      const el = document.getElementById('lobbyDiamondCount');
+      if (el) el.textContent = formatNum(snap.val() || 0);
+    });
+
+    evaluateBadges(name);
+    checkMarriageRewards();
+  }
+
+  // Firebase Auth kendi oturumunu (session) tarayıcıda kalıcı olarak tutuyor — sayfa yenilenince
+  // burası tetiklenip otomatik giriş yapıyor. localStorage'daki isim sadece "hangi hesap" bilgisini
+  // hatırlamak için yardımcı, gerçek oturum güvenliği Firebase Auth'ta.
+  auth.onAuthStateChanged(user => {
+    if (user && !currentPlayerName) {
+      const remembered = safeLocalGet('flx_currentUser');
+      if (remembered) {
+        db.ref('users/' + remembered + '/authUid').get().then(snap => {
+          if (snap.val() === user.uid) enterLobby(remembered);
+          else safeLocalRemove('flx_currentUser');
+        });
+      }
+    }
+  });
+
+  // ---------- panel (mağaza/gardırop/profil/arkadaş/ayarlar) yer tutucular ----------
+  const panelData = {
+    store: { title: '🛍️ Mağaza', body: 'Elmasla çerçeve, avatar parçası ve hediye satın alınacak yer. Yakında dolduracağız.' },
+    wardrobe: { title: '👗 Gardırop', body: 'Avatar oluşturucu burada olacak — saç, göz, kıyafet seçimi.' },
+    profile: { title: '🌸 Profilim', body: 'Bio, rozetler, level, popülerlik sayısı burada gösterilecek.' },
+    friends: { title: '💌 Arkadaşlar', body: 'Yakın arkadaş listesi ve destekçi listesi burada olacak.' },
+    settings: { title: '⚙️ Ayarlar', body: 'Dil (TR/EN), çıkış yap ve diğer ayarlar burada olacak.' },
+  };
+  function openPanel(key) {
+    if (key === 'profile') { openProfilePanel(); return; }
+    if (key === 'settings') { openSettingsPanel(); return; }
+    document.getElementById('panelTitle').textContent = panelData[key].title;
+    document.getElementById('panelBody').textContent = panelData[key].body;
+    document.getElementById('sidePanel').classList.add('active');
+  }
+  function closePanel() {
+    document.getElementById('sidePanel').classList.remove('active');
+  }
+
+  // ---------- PROFİL (gerçek veri, Firebase users/{isim}) ----------
+  // Not: Astoria hesabı için popülerlik/oyun sayıları şimdilik özel olarak gösteriliyor —
+  // gerçek oyun mantığı tamamlanınca bu sayılar gerçek oynanışla kazanılacak.
+  const SPECIAL_ACCOUNTS = {
+    'astoria': { popularity: 573372, wins: 1762, nameColor: '#40080A' }
+  };
+
+  function formatNum(n) {
+    return n.toLocaleString('tr-TR');
+  }
+
+  function openProfilePanel() {
+    evaluateBadges(currentPlayerName);
+    const key = currentPlayerName.toLowerCase();
+    const special = SPECIAL_ACCOUNTS[key];
+
+    db.ref('users/' + currentPlayerName).get().then(snapshot => {
+      const data = snapshot.val() || { bio: 'Not bio yet', level: 1, wins: 0, popularity: 0, diamonds: 0, gender: 'kiz' };
+
+      const nameColor = special ? special.nameColor : (data.nameColor || (data.gender === 'erkek' ? '#EDEFE9' : 'var(--pink)'));
+      const pop = special ? special.popularity : (data.popularity || 0);
+      const wins = special ? special.wins : (data.wins || 0);
+
+      document.getElementById('profileName').textContent = currentPlayerName;
+      document.getElementById('profileName').style.color = nameColor;
+      document.getElementById('profileLevel').textContent = data.level || 1;
+      document.getElementById('statPop').textContent = formatNum(pop);
+      document.getElementById('statWins').textContent = formatNum(wins);
+
+      const bioText = data.bio || 'Not bio yet';
+      document.getElementById('profileBioDisplay').textContent = bioText;
+      document.getElementById('profileBioDisplay').style.color = nameColor;
+
+      // isim yanındaki KÜÇÜK olan = gerçek profil fotoğrafı/GIF
+      const avatarSmallEl = document.getElementById('profileAvatarSmall');
+      if (data.photoUrl) {
+        avatarSmallEl.style.background = `url('${data.photoUrl}') center/cover`;
+        avatarSmallEl.innerHTML = '';
+      } else {
+        avatarSmallEl.style.background = data.gender === 'erkek'
+          ? 'linear-gradient(135deg, #2A2A2A, #0E0A0C)'
+          : 'linear-gradient(135deg, var(--pink), var(--pink-hot))';
+        avatarSmallEl.innerHTML = '🌸';
+      }
+      applyFrameToElement(avatarSmallEl, data.avatar && data.avatar.frame);
+
+      // sağ kenardaki BÜYÜK olan = gardıroptan oluşturulan 3D avatarın PNG anlık görüntüsü
+      const avatarBigEl = document.getElementById('profileAvatarBig');
+      if (data.avatar) {
+        currentAvatar = data.avatar;
+        if (data.avatar.snapshotUrl) {
+          avatarBigEl.style.background = `url('${data.avatar.snapshotUrl}') center/contain no-repeat`;
+          avatarBigEl.innerHTML = '';
+        } else {
+          // eski hesap ya da henüz kaydedilmemiş: anlık olarak bir kez render edip göster
+          const snap = renderAvatarSnapshot(data.avatar, 128);
+          avatarBigEl.style.background = snap ? `url('${snap}') center/contain no-repeat` : (data.gender === 'erkek'
+            ? 'linear-gradient(135deg, #2A2A2A, #0E0A0C)'
+            : 'linear-gradient(135deg, var(--pink), var(--pink-hot))');
+          avatarBigEl.innerHTML = snap ? '' : '🌸';
+        }
+      } else {
+        avatarBigEl.style.background = data.gender === 'erkek'
+          ? 'linear-gradient(135deg, #2A2A2A, #0E0A0C)'
+          : 'linear-gradient(135deg, var(--pink), var(--pink-hot))';
+        avatarBigEl.innerHTML = '🌸';
+      }
+
+      // rozetler
+      const badges = data.badges || [];
+      const badgeBox = document.getElementById('profileBadges');
+      badgeBox.innerHTML = '';
+      if (badges.length === 0) {
+        badgeBox.innerHTML = '<span style="color:var(--muted); font-size:0.75rem;">Henüz rozet kazanılmadı</span>';
+      } else {
+        badges.forEach(b => {
+          const info = getBadgeInfo(b);
+          const chip = document.createElement('span');
+          chip.textContent = info.icon + ' ' + b;
+          chip.title = info.desc;
+          chip.onclick = () => showBadgeInfo(b);
+          chip.style.cssText = 'background:rgba(217,67,107,0.15); border:1px solid var(--pink-hot); border-radius:14px; padding:4px 10px; font-size:0.7rem; font-weight:700; color:var(--pink); cursor:pointer;';
+          badgeBox.appendChild(chip);
+        });
+      }
+    });
+
+    document.getElementById('profilePanel').style.display = 'flex';
+  }
+
+  function closeProfilePanel() {
+    document.getElementById('profilePanel').style.display = 'none';
+  }
+
+  function editName() {
+    const newName = prompt('Yeni ismini yaz (değiştirmek ücretsiz):', currentPlayerName);
+    if (!newName || !newName.trim() || newName.trim() === currentPlayerName) return;
+    // Not: gerçek sistemde oda/arkadaşlık verileri de yeni isme taşınmalı — şimdilik sadece görünen ismi güncelliyoruz.
+    alert('İsim değiştirme, gerçek hesap sistemine bağlanınca (isim geçmişi, arkadaş listeleri vs. korunarak) tam çalışacak. Şimdilik not aldık: ' + newName.trim());
+  }
+
+  function editBio() {
+    const current = document.getElementById('profileBioDisplay').textContent;
+    const newBio = prompt('Yeni bio yaz:', current === 'Not bio yet' ? '' : current);
+    if (newBio === null) return;
+    const bio = newBio.trim() || 'Not bio yet';
+    db.ref('users/' + currentPlayerName + '/bio').set(bio).then(() => {
+      document.getElementById('profileBioDisplay').textContent = bio;
+    });
+  }
+
+  // ================= FOTOĞRAF/GIF YÜKLEME (Cloudinary) =================
+  const CLOUDINARY_CLOUD_NAME = 'nqnlk89g';
+  const CLOUDINARY_UPLOAD_PRESET = 'florexia_upload';
+
+  function editAvatarPhoto() {
+    document.getElementById('photoUploadInput').click();
+  }
+
+  function handlePhotoFileSelected(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const msgTarget = document.getElementById('avatarSaveMsg') || document.getElementById('editProfileMsg');
+    if (msgTarget) msgTarget.textContent = 'Yükleniyor... 🌸';
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+    fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+      method: 'POST',
+      body: formData
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.secure_url) throw new Error(data.error?.message || 'Yükleme başarısız');
+        return db.ref('users/' + currentPlayerName + '/photoUrl').set(data.secure_url);
+      })
+      .then(() => {
+        if (msgTarget) msgTarget.textContent = 'Fotoğraf kaydedildi ✓';
+        openProfilePanel();
+      })
+      .catch(err => {
+        alert('Yükleme hatası: ' + err.message);
+      });
+
+    event.target.value = ''; // aynı dosyayı tekrar seçebilmek için sıfırla
+  }
+
+  // ================= MAĞAZA =================
+  const STORE_ITEMS = {
+    bicak: [
+      { id: 'bicak_cilek', name: 'Çilek Desenli Bıçak', icon: '🔪', price: 500, source: 'elmas' },
+      { id: 'bicak_altin', name: 'Altın Bıçak', icon: '🔪', price: 3000, source: 'elmas' },
+      { id: 'bicak_gumus', name: 'Gümüş Bıçak', icon: '🔪', price: 2000, source: 'elmas' },
+      { id: 'bicak_pembe', name: 'Pembe Bıçak', icon: '🔪', price: 400, source: 'elmas' },
+      { id: 'bicak_siyah', name: 'Siyah Bıçak', icon: '🔪', price: 400, source: 'elmas' },
+      { id: 'bicak_gece', name: 'Gece Bıçağı', icon: '🔪', price: 0, source: 'gorev', desc: '"Florexia Myth" rozetiyle açılır' },
+    ],
+    silah: [
+      { id: 'silah_gumus', name: 'Gümüş Tabanca', icon: '🔫', price: 300, source: 'elmas' },
+      { id: 'silah_pembe', name: 'Pembe Tabanca', icon: '🔫', price: 700, source: 'elmas' },
+      { id: 'silah_altin', name: 'Altın Tabanca', icon: '🔫', price: 1500, source: 'elmas' },
+      { id: 'silah_sadik', name: 'Şerifin Nişanı', icon: '🔫', price: 0, source: 'gorev', unlockBadge: 'Popular.', desc: '"Popular." rozetiyle açılır' },
+    ],
+    cerceve: [
+      { id: 'cerceve_pembe', name: 'Pembe Çiçek Çerçeve', icon: '🖼️', price: 500, source: 'elmas' },
+      { id: 'cerceve_altin', name: 'Altın Çerçeve', icon: '🖼️', price: 2000, source: 'elmas' },
+      { id: 'cerceve_hediye', name: 'Hediye Çerçevesi', icon: '🖼️', price: 0, source: 'gorev', desc: '100 hediye alınca kazanılır (Görevler)' },
+      { id: 'cerceve_altin_oyma', name: 'Altın Oyma Çerçeve', icon: '🖼️', price: 0, source: 'gorev', unlockBadge: 'Rich.', desc: '"Rich." rozetiyle açılır' },
+      { id: 'cerceve_sampanya_oyma', name: 'Şampanya Oyma Çerçeve', icon: '🖼️', price: 800, source: 'elmas' },
+      { id: 'cerceve_kalp_rose', name: 'Rose Kalp Çerçeve', icon: '🖼️', price: 0, source: 'gorev', unlockBadge: 'Soft.', desc: '"Soft." rozetiyle açılır' },
+      { id: 'cerceve_altin_sade', name: 'Sade Altın Çerçeve', icon: '🖼️', price: 300, source: 'elmas' },
+      { id: 'cerceve_dantel_beyaz', name: 'Beyaz Dantel Çerçeve', icon: '🖼️', price: 800, source: 'elmas' },
+      { id: 'cerceve_inci_anahtar', name: 'İnci & Anahtar Çerçeve', icon: '🖼️', price: 1000, source: 'elmas' },
+      { id: 'cerceve_inci_fiyonk', name: 'İnci Fiyonklu Çerçeve', icon: '🖼️', price: 0, source: 'gorev', unlockBadge: 'Popular Girl', desc: '"Popular Girl" rozetiyle açılır' },
+      { id: 'cerceve_inci_sade', name: 'Sade İnci Çerçeve', icon: '🖼️', price: 300, source: 'elmas' },
+    ],
+    hediye: [
+      { id: 'hediye_ayicik', name: 'Ayıcık', icon: '🧸', price: 300, popularity: 150 },
+      { id: 'hediye_ruj', name: 'Ruj', icon: '💄', price: 600, popularity: 300 },
+      { id: 'hediye_telefon', name: 'Telefon', icon: '📱', price: 1500, popularity: 750 },
+    ],
+    yuzuk: [
+      { id: 'yuzuk_az', name: 'Az Değerli Yüzük', icon: '💍', price: 578, source: 'elmas' },
+      { id: 'yuzuk_orta', name: 'Orta Değerli Yüzük', icon: '💍', price: 1500, source: 'elmas' },
+      { id: 'yuzuk_degerli', name: 'En Değerli Yüzük', icon: '💎💍', price: 3000, source: 'elmas' },
+    ],
+    sapka: [
+      { id: 'sapka_dantel_bere', name: 'Dantel Bere', icon: '🧶', price: 200, source: 'elmas', gender: 'kiz', variant: { type: 'bere', color: '#F5EFE6' } },
+      { id: 'sapka_inci_tac', name: 'İnci Taç Bandı', icon: '👑', price: 0, source: 'gorev', unlockBadge: 'Popular.', desc: '"Popular." rozetiyle açılır', gender: 'kiz', variant: { type: 'tac', color: '#F3D9E4' } },
+      { id: 'sapka_vintage_kep', name: 'Vintage Şapka (kız)', icon: '🧢', price: 200, source: 'elmas', gender: 'kiz', variant: { type: 'kep', color: '#2A2A2A' } },
+      { id: 'sapka_esarp_mavi', name: 'Mavi Desenli Eşarp', icon: '🧣', price: 400, source: 'elmas', gender: 'kiz', variant: { type: 'esarp', color: '#CDE0E8' } },
+      { id: 'sapka_killer_maske_kiz', name: 'Hayalet Maske (kız)', icon: '👻', price: 0, source: 'gorev', unlockBadge: 'KILLER.', desc: '"KILLER." rozetiyle açılır', gender: 'kiz', variant: { type: 'maske', color: '#F4F4F4' } },
+      { id: 'sapka_kovboy_pembe', name: 'Pembe Kovboy Şapkası', icon: '🤠', price: 0, source: 'gorev', unlockBadge: 'Popular Girl', desc: '"Popular Girl" rozetiyle açılır', gender: 'kiz', variant: { type: 'kovboy', color: '#F3C6D9' } },
+      { id: 'sapka_kiraz_bere', name: 'Kiraz Desenli Bere', icon: '🍒', price: 0, source: 'gorev', unlockBadge: 'Red Flag.', desc: '"Red Flag." rozetiyle açılır', gender: 'kiz', variant: { type: 'bere', color: '#EFE6D8', accent: '#B3272D' } },
+      { id: 'sapka_esarp_kahve', name: 'Kahve Desenli Eşarp', icon: '🧣', price: 400, source: 'elmas', gender: 'kiz', variant: { type: 'esarp', color: '#B98A55' } },
+      { id: 'sapka_dantel_tac', name: 'Dantel Taç Bandı', icon: '👑', price: 100, source: 'elmas', gender: 'kiz', variant: { type: 'tac', color: '#F7F3EA' } },
+      { id: 'sapka_nike_kep', name: 'Beyaz Spor Şapka', icon: '🧢', price: 300, source: 'elmas', gender: 'erkek', variant: { type: 'kep', color: '#FFFFFF' } },
+      { id: 'sapka_killer_maske_erkek', name: 'Hayalet Maske (erkek)', icon: '👻', price: 0, source: 'gorev', unlockBadge: 'KILLER.', desc: '"KILLER." rozetiyle açılır', gender: 'erkek', variant: { type: 'maske', color: '#EDEDED' } },
+      { id: 'sapka_siyah_kep', name: 'Siyah Vintage Şapka', icon: '🧢', price: 200, source: 'elmas', gender: 'erkek', variant: { type: 'kep', color: '#2A2A2A' } },
+      { id: 'sapka_boynuz', name: 'Şeytan Boynuzu', icon: '😈', price: 0, source: 'gorev', unlockBadge: 'Red Flag.', desc: '"Red Flag." rozetiyle açılır', gender: 'erkek', variant: { type: 'boynuz', color: '#C81E3A' } },
+    ],
+    pandufl: [
+      { id: 'pandufl_kedi', name: 'Kedi Pandufl', icon: '🐱', price: 500, source: 'elmas', gender: 'kiz', variant: { color: '#E4E0DA', ear: 'point' } },
+      { id: 'pandufl_yaratik', name: 'Tatlı Yaratık Pandufl', icon: '👽', price: 400, source: 'elmas', gender: 'kiz', variant: { color: '#EFE6D2', ear: 'round' } },
+      { id: 'pandufl_ayicik', name: 'Ayıcık Pandufl', icon: '🧸', price: 200, source: 'elmas', gender: 'kiz', variant: { color: '#C9A97E', ear: 'round' } },
+      { id: 'pandufl_tavsan_gri', name: 'Gri Tavşan Pandufl', icon: '🐰', price: 400, source: 'elmas', gender: 'kiz', variant: { color: '#C7C7C7', ear: 'long' } },
+      { id: 'pandufl_inek', name: 'İnek Pandufl', icon: '🐮', price: 200, source: 'elmas', gender: 'kiz', variant: { color: '#F2EFE9', ear: 'round' } },
+      { id: 'pandufl_tavsan_beyaz', name: 'Beyaz Tavşan Pandufl', icon: '🐇', price: 200, source: 'elmas', gender: 'kiz', variant: { color: '#F7F3EC', ear: 'long' } },
+      { id: 'pandufl_kutup_ayi', name: 'Kutup Ayısı Pandufl', icon: '🐻‍❄️', price: 400, source: 'elmas', gender: 'kiz', variant: { color: '#FAFAFA', ear: 'round' } },
+      { id: 'pandufl_kutup_ayi_e', name: 'Kutup Ayısı Pandufl (erkek)', icon: '🐻‍❄️', price: 400, source: 'elmas', gender: 'erkek', variant: { color: '#FAFAFA', ear: 'round' } },
+      { id: 'pandufl_kurt_siyah', name: 'Kurt Pandufl (siyah)', icon: '🐺', price: 300, source: 'elmas', gender: 'erkek', variant: { color: '#3A3A3A', ear: 'point' } },
+      { id: 'pandufl_kurt_gri', name: 'Kurt Pandufl (gri)', icon: '🐺', price: 300, source: 'elmas', gender: 'erkek', variant: { color: '#7A7A7A', ear: 'point' } },
+      { id: 'pandufl_tavsan_erkek', name: 'Tavşan Pandufl (erkek)', icon: '🐰', price: 400, source: 'elmas', gender: 'erkek', variant: { color: '#C7C7C7', ear: 'long' } },
+    ],
+    kanat: [
+      { id: 'kanat_melek_beyaz', name: 'Melek Kanadı', icon: '👼', price: 2000, source: 'elmas', gender: 'unisex', variant: { color: '#FAFAFA' } },
+    ]
+  };
+  let currentStoreTab = 'bicak';
+
+  function findStoreItem(cat, id) {
+    if (!id || !STORE_ITEMS[cat]) return null;
+    return STORE_ITEMS[cat].find(i => i.id === id) || null;
+  }
+
+  function openStorePanel() {
+    db.ref('users/' + currentPlayerName + '/diamonds').get().then(snap => {
+      document.getElementById('storeDiamondCount').textContent = formatNum(snap.val() || 0);
+    });
+    switchStoreTab('bicak');
+    document.getElementById('storePanel').style.display = 'flex';
+  }
+  function closeStorePanel() {
+    document.getElementById('storePanel').style.display = 'none';
+  }
+
+  function switchStoreTab(tab) {
+    currentStoreTab = tab;
+    document.querySelectorAll('.storeTab').forEach(btn => {
+      const active = btn.dataset.tab === tab;
+      btn.style.background = active ? 'rgba(217,67,107,0.15)' : '#150F12';
+      btn.style.color = active ? 'var(--text)' : 'var(--muted)';
+      btn.style.borderColor = active ? 'var(--pink-hot)' : 'rgba(232,140,175,0.25)';
+    });
+    renderStoreItems();
+  }
+
+  // Çerçeveler gerçek görsellerin birebir kopyası değil (telif), ama gerçekten UYGULANIYOR:
+  // seçilen çerçeve profil fotoğrafının etrafında halka + varsa küçük bir aksesuar rozeti olarak render edilir.
+  const FRAME_STYLES = {
+    cerceve_pembe:        { ring: ['#F3C6D9', '#E8558A'] },
+    cerceve_altin:        { ring: ['#F5D889', '#B8860B'] },
+    cerceve_hediye:       { ring: ['#7FBF3F', '#3F6B1F'], accent: '🎁' },
+    cerceve_altin_oyma:   { ring: ['#F7E7B0', '#9C7A1E', '#F7E7B0'] },
+    cerceve_sampanya_oyma:{ ring: ['#E9E2CE', '#A79868', '#E9E2CE'] },
+    cerceve_kalp_rose:    { ring: ['#F3D9CE', '#D9A48C'], accent: '💗' },
+    cerceve_altin_sade:   { ring: ['#E7C873', '#C9A227'] },
+    cerceve_dantel_beyaz: { ring: ['#FFFFFF', '#E8DCE2'], accent: '🎀' },
+    cerceve_inci_anahtar: { ring: ['#F4F1EA', '#D8D2C4'], accent: '🔑', dashed: true },
+    cerceve_inci_fiyonk:  { ring: ['#F4F1EA', '#D8D2C4'], accent: '🎀', dashed: true },
+    cerceve_inci_sade:    { ring: ['#F4F1EA', '#D8D2C4'], dashed: true },
+  };
+
+  function applyFrameToElement(el, frameId) {
+    if (!el) return;
+    if (el.dataset.baseBorder === undefined) el.dataset.baseBorder = el.style.border || '';
+    const oldAccent = el.parentElement && el.parentElement.querySelector('.frameAccent[data-for="' + el.id + '"]');
+    if (oldAccent) oldAccent.remove();
+    const f = frameId && FRAME_STYLES[frameId];
+    if (!f) { el.style.boxShadow = ''; el.style.border = el.dataset.baseBorder; return; }
+    const [c1, c2, c3] = f.ring;
+    el.style.border = 'none';
+    el.style.boxShadow = f.dashed
+      ? `0 0 0 3px ${c1}, 0 0 0 6px ${c2}`
+      : `0 0 0 4px ${c1}, 0 0 0 7px ${c2}${c3 ? ', 0 0 0 9px ' + c3 : ''}`;
+    if (f.accent && el.parentElement) {
+      if (!el.parentElement.style.position) el.parentElement.style.position = 'relative';
+      const badge = document.createElement('div');
+      badge.className = 'frameAccent';
+      badge.dataset.for = el.id;
+      badge.textContent = f.accent;
+      badge.style.cssText = 'position:absolute; font-size:0.9rem; right:-6px; bottom:-6px; filter:drop-shadow(0 0 2px #0008); pointer-events:none;';
+      el.parentElement.appendChild(badge);
+    }
+  }
+
+  function renderStoreItems() {
+    db.ref('users/' + currentPlayerName).get().then(snap => {
+      const u = snap.val() || {};
+      const diamonds = u.diamonds || 0;
+      const owned = (u.inventory && u.inventory[currentStoreTab]) || {};
+      const grid = document.getElementById('storeItemsGrid');
+      grid.innerHTML = '';
+
+      STORE_ITEMS[currentStoreTab].forEach(item => {
+        const isGift = currentStoreTab === 'hediye';
+        const isRing = currentStoreTab === 'yuzuk';
+        const isFrame = currentStoreTab === 'cerceve';
+        const isOwned = !isGift && !isRing && owned[item.id];
+        const isGorev = item.source === 'gorev';
+        const card = document.createElement('div');
+        card.style.cssText = 'background:#150F12; border:1px solid rgba(232,140,175,0.2); border-radius:12px; padding:12px; text-align:center;';
+        let btnHtml;
+        if (isGift) {
+          const affordable = diamonds >= item.price;
+          btnHtml = `<button ${affordable ? '' : 'disabled'} onclick="openGiftSend('${item.id}')" style="width:100%; margin-top:8px; padding:7px; border-radius:8px; border:none; font-weight:800; font-size:0.72rem; cursor:${affordable ? 'pointer' : 'not-allowed'}; background:${affordable ? 'linear-gradient(135deg,#D4AF37,#8A6F1F)' : '#2A2A2A'}; color:${affordable ? '#0B120D' : '#666'};">🎁 Gönder (${formatNum(item.price)}💎)</button>`;
+        } else if (isRing) {
+          const affordable = diamonds >= item.price;
+          btnHtml = `<button ${affordable ? '' : 'disabled'} onclick="openMarriagePropose('${item.id}')" style="width:100%; margin-top:8px; padding:7px; border-radius:8px; border:none; font-weight:800; font-size:0.72rem; cursor:${affordable ? 'pointer' : 'not-allowed'}; background:${affordable ? 'linear-gradient(135deg,#D9436B,#8A1438)' : '#2A2A2A'}; color:${affordable ? '#fff' : '#666'};">💍 Teklif Et (${formatNum(item.price)}💎)</button>`;
+        } else if (isGorev && !isOwned) {
+          btnHtml = `<div style="margin-top:8px; font-size:0.68rem; color:var(--muted);">${item.desc || 'Görevle açılır'}</div>`;
+        } else if (isOwned) {
+          btnHtml = `<div style="margin-top:8px; font-size:0.72rem; color:#7FBF3F; font-weight:800;">Sahipsin ✓${isFrame ? ' — Gardırop’tan tak' : ''}</div>`;
+        } else {
+          const affordable = diamonds >= item.price;
+          btnHtml = `<button ${affordable ? '' : 'disabled'} onclick="buyStoreItem('${item.id}')" style="width:100%; margin-top:8px; padding:7px; border-radius:8px; border:none; font-weight:800; font-size:0.72rem; cursor:${affordable ? 'pointer' : 'not-allowed'}; background:${affordable ? 'linear-gradient(135deg,#7FBF3F,#4F8A22)' : '#2A2A2A'}; color:${affordable ? '#0B120D' : '#666'};">Satın Al (${formatNum(item.price)}💎)</button>`;
+        }
+        card.innerHTML = `<div style="font-size:2rem;">${item.icon}</div>
+          <div style="font-size:0.8rem; font-weight:700; margin-top:4px;">${item.name}</div>
+          ${item.popularity ? `<div style="font-size:0.68rem; color:var(--pink-hot);">+${formatNum(item.popularity)} popülerlik</div>` : ''}
+          ${btnHtml}`;
+        grid.appendChild(card);
+      });
+    });
+  }
+
+  function buyStoreItem(itemId) {
+    const item = STORE_ITEMS[currentStoreTab].find(i => i.id === itemId);
+    const userRef = db.ref('users/' + currentPlayerName);
+    userRef.transaction(u => {
+      if (!u) return u;
+      if ((u.diamonds || 0) < item.price) return u;
+      u.diamonds = (u.diamonds || 0) - item.price;
+      u.inventory = u.inventory || {};
+      u.inventory[currentStoreTab] = u.inventory[currentStoreTab] || {};
+      u.inventory[currentStoreTab][itemId] = true;
+      return u;
+    }).then(() => { openStorePanel(); });
+  }
+
+  // ---------- hediye gönderme ----------
+  let pendingGiftId = null;
+  function openGiftSend(itemId) {
+    pendingGiftId = itemId;
+    const item = STORE_ITEMS.hediye.find(i => i.id === itemId);
+    document.getElementById('giftSendTitle').textContent = item.icon + ' ' + item.name + ' gönder';
+    db.ref('users/' + currentPlayerName + '/friends').get().then(snap => {
+      const friends = Object.keys(snap.val() || {});
+      const box = document.getElementById('giftFriendPicker');
+      box.innerHTML = '';
+      if (friends.length === 0) {
+        box.innerHTML = '<div style="color:var(--muted); font-size:0.8rem;">Hediye göndermek için önce arkadaşın olmalı.</div>';
+      }
+      friends.forEach(name => {
+        const row = document.createElement('button');
+        row.textContent = name;
+        row.style.cssText = 'padding:10px; border-radius:8px; border:1px solid var(--pink-hot); background:#150F12; color:var(--text); font-weight:700; cursor:pointer;';
+        row.onclick = () => sendGift(name);
+        box.appendChild(row);
+      });
+    });
+    document.getElementById('giftSendPanel').style.display = 'flex';
+  }
+  function closeGiftSend() {
+    document.getElementById('giftSendPanel').style.display = 'none';
+    pendingGiftId = null;
+  }
+
+  function sendGift(friendName) {
+    const item = STORE_ITEMS.hediye.find(i => i.id === pendingGiftId);
+    const myRef = db.ref('users/' + currentPlayerName);
+    myRef.transaction(u => {
+      if (!u) return u;
+      if ((u.diamonds || 0) < item.price) return u;
+      u.diamonds = (u.diamonds || 0) - item.price;
+      u.giftsGiven = (u.giftsGiven || 0) + 1;
+      return u;
+    }).then(result => {
+      if (!result.committed) { alert('Yetersiz elmas.'); return; }
+      // ÖNEMLİ: friendRef'in TÜMÜNE (whole-node) transaction yapmak Firebase kurallarında
+      // "Permission denied" veriyordu, çünkü kurallar sadece belirli alt alanlara (popularity,
+      // giftsReceived) izin veriyor. Onun yerine doğrudan o alt alanlara yazıyoruz.
+      db.ref('users/' + friendName + '/popularity').transaction(v => (v || 0) + item.popularity);
+      db.ref('users/' + friendName + '/giftsReceived').transaction(v => (v || 0) + 1);
+      alert(item.icon + ' ' + item.name + ' ' + friendName + '\'e gönderildi! 🌸');
+      closeGiftSend();
+      openStorePanel();
+    });
+  }
+
+  // ================= EVLİLİK SİSTEMİ =================
+  const MARRIAGE_REWARD_INTERVAL = 50; // her 50 günde bir ödül
+  const DARLING_ESIGI = 365 * 86400000; // 1 yıl
+  let pendingRingId = null;
+
+  function daysBetween(startTs, endTs) {
+    return Math.floor((endTs - startTs) / 86400000);
+  }
+
+  // ---------- teklif etme ----------
+  function openMarriagePropose(ringId) {
+    db.ref('users/' + currentPlayerName + '/marriage').get().then(mySnap => {
+      if (mySnap.val() && mySnap.val().spouse) {
+        alert('Zaten evlisin. Teklif etmeden önce boşanman gerekiyor. 💔');
+        return;
+      }
+      pendingRingId = ringId;
+      const item = STORE_ITEMS.yuzuk.find(i => i.id === ringId);
+      document.getElementById('marriageProposeTitle').textContent = item.icon + ' ' + item.name + ' ile teklif et';
+      db.ref('users/' + currentPlayerName + '/friends').get().then(snap => {
+        const friends = Object.keys(snap.val() || {});
+        const box = document.getElementById('marriageFriendPicker');
+        box.innerHTML = '';
+        if (friends.length === 0) {
+          box.innerHTML = '<div style="color:var(--muted); font-size:0.8rem;">Teklif etmek için önce arkadaşın olmalı.</div>';
+        }
+        friends.forEach(name => {
+          const row = document.createElement('button');
+          row.textContent = name;
+          row.style.cssText = 'padding:10px; border-radius:8px; border:1px solid var(--pink-hot); background:#150F12; color:var(--text); font-weight:700; cursor:pointer;';
+          row.onclick = () => sendMarriageProposal(name);
+          box.appendChild(row);
+        });
+      });
+      document.getElementById('marriageProposePanel').style.display = 'flex';
+    });
+  }
+  function closeMarriagePropose() {
+    document.getElementById('marriageProposePanel').style.display = 'none';
+    pendingRingId = null;
+  }
+
+  function sendMarriageProposal(friendName) {
+    const item = STORE_ITEMS.yuzuk.find(i => i.id === pendingRingId);
+    const myRef = db.ref('users/' + currentPlayerName);
+    myRef.transaction(u => {
+      if (!u) return u;
+      if (u.marriage && u.marriage.spouse) return u; // zaten evli, teklif iptal
+      if ((u.diamonds || 0) < item.price) return u;
+      u.diamonds = (u.diamonds || 0) - item.price;
+      return u;
+    }).then(result => {
+      if (!result.committed) { alert('Yetersiz elmas ya da zaten evlisin.'); return; }
+      const after = result.snapshot.val();
+      if (after.marriage && after.marriage.spouse) { alert('Zaten evlisin.'); return; }
+      db.ref('marriageProposals/' + friendName + '/' + currentPlayerName).set({
+        ring: pendingRingId, ts: Date.now()
+      }).then(() => {
+        alert(item.icon + ' Evlilik teklifin ' + friendName + '\'e gönderildi! 💍');
+        closeMarriagePropose();
+        openStorePanel();
+      });
+    });
+  }
+
+  // ---------- teklif kabul / red ----------
+  function acceptMarriageProposal(fromName, ringId) {
+    Promise.all([
+      db.ref('users/' + currentPlayerName + '/marriage').get(),
+      db.ref('users/' + fromName + '/marriage').get()
+    ]).then(([mySnap, theirSnap]) => {
+      if (mySnap.val() && mySnap.val().spouse) { alert('Zaten evlisin, önce boşanman gerekiyor.'); return; }
+      if (theirSnap.val() && theirSnap.val().spouse) { alert(fromName + ' zaten evli.'); return; }
+      const since = Date.now();
+      const updates = {};
+      updates['users/' + currentPlayerName + '/marriage'] = { spouse: fromName, since, ring: ringId, lastRewardDay: 0 };
+      updates['users/' + fromName + '/marriage'] = { spouse: currentPlayerName, since, ring: ringId, lastRewardDay: 0 };
+      updates['marriageProposals/' + currentPlayerName + '/' + fromName] = null;
+      db.ref().update(updates).then(() => {
+        alert('💍 Artık ' + fromName + ' ile evlisin! 🌸');
+        renderMarriagePanel();
+      });
+    });
+  }
+  function declineMarriageProposal(fromName) {
+    db.ref('marriageProposals/' + currentPlayerName + '/' + fromName).remove().then(() => renderMarriagePanel());
+  }
+
+  // ---------- boşanma ----------
+  function divorceSpouse() {
+    db.ref('users/' + currentPlayerName + '/marriage').get().then(snap => {
+      const marriage = snap.val();
+      if (!marriage || !marriage.spouse) return;
+      if (!confirm(marriage.spouse + ' ile boşanmak istediğine emin misin? (ücretsiz)')) return;
+      const spouse = marriage.spouse;
+      const until = Date.now();
+      const days = daysBetween(marriage.since, until);
+      const updates = {};
+      updates['users/' + currentPlayerName + '/marriage'] = null;
+      updates['users/' + currentPlayerName + '/marriageHistory/' + spouse + '_' + marriage.since] = {
+        spouse, since: marriage.since, until, days
+      };
+      updates['users/' + spouse + '/marriage'] = null;
+      updates['users/' + spouse + '/marriageHistory/' + currentPlayerName + '_' + marriage.since] = {
+        spouse: currentPlayerName, since: marriage.since, until, days
+      };
+      db.ref().update(updates).then(() => {
+        alert('💔 Boşandın.');
+        renderMarriagePanel();
+      });
+    });
+  }
+
+  // ---------- gün bazlı elmas ödülü (50/100/150...) ----------
+  function checkMarriageRewards() {
+    const ref = db.ref('users/' + currentPlayerName);
+    ref.transaction(u => {
+      if (!u || !u.marriage || !u.marriage.spouse) return u;
+      const daysNow = daysBetween(u.marriage.since, Date.now());
+      const lastRewardDay = u.marriage.lastRewardDay || 0;
+      let reward = 0;
+      let newLastRewardDay = lastRewardDay;
+      for (let d = lastRewardDay + MARRIAGE_REWARD_INTERVAL; d <= daysNow; d += MARRIAGE_REWARD_INTERVAL) {
+        reward += d;
+        newLastRewardDay = d;
+      }
+      if (reward > 0) {
+        u.diamonds = (u.diamonds || 0) + reward;
+        u.marriage.lastRewardDay = newLastRewardDay;
+      }
+      return u;
+    });
+  }
+
+  // ---------- evlilik paneli ----------
+  function openMarriagePanel() {
+    checkMarriageRewards();
+    renderMarriagePanel();
+    document.getElementById('marriagePanel').style.display = 'flex';
+  }
+  function closeMarriagePanel() {
+    document.getElementById('marriagePanel').style.display = 'none';
+  }
+
+  function renderMarriagePanel() {
+    db.ref('users/' + currentPlayerName).get().then(snap => {
+      const u = snap.val() || {};
+      const marriage = u.marriage;
+      const currentBox = document.getElementById('marriageCurrentBox');
+      if (marriage && marriage.spouse) {
+        const days = daysBetween(marriage.since, Date.now());
+        currentBox.innerHTML = `
+          <div style="font-size:1.5rem;">💍</div>
+          <div style="font-weight:800; color:var(--pink); margin-top:4px;">${marriage.spouse} ile evli</div>
+          <div style="color:var(--muted); font-size:0.8rem; margin-top:2px;">${days}. gün</div>
+          <button onclick="divorceSpouse()" style="margin-top:10px; padding:8px 16px; border-radius:8px; border:1px solid var(--pink-hot); background:transparent; color:var(--pink); font-weight:700; cursor:pointer; font-size:0.78rem;">💔 Boşan (ücretsiz)</button>`;
+        document.getElementById('profileMarriageSummary').textContent = marriage.spouse + ' ile evli · ' + days + '. gün';
+      } else {
+        currentBox.innerHTML = `<div style="color:var(--muted); font-size:0.85rem;">Şu an evli değilsin. Mağazadan 💍 yüzük alarak teklif edebilirsin.</div>`;
+        document.getElementById('profileMarriageSummary').textContent = 'Henüz yok';
+      }
+
+      // gelen teklifler
+      db.ref('marriageProposals/' + currentPlayerName).get().then(propSnap => {
+        const proposals = propSnap.val() || {};
+        const box = document.getElementById('marriageProposalsBox');
+        box.innerHTML = '';
+        const names = Object.keys(proposals);
+        if (names.length > 0) {
+          box.innerHTML = '<div style="color:var(--muted); font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Gelen Teklifler</div>';
+        }
+        names.forEach(name => {
+          const ringId = proposals[name].ring;
+          const item = STORE_ITEMS.yuzuk.find(i => i.id === ringId) || { icon: '💍', name: 'Yüzük' };
+          const row = document.createElement('div');
+          row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; background:#150F12; border-radius:8px; padding:8px 10px; margin-bottom:6px;';
+          row.innerHTML = `<span style="font-weight:700;">${item.icon} ${name} sana ${item.name} ile teklif etti</span>
+            <span style="display:flex; gap:6px;">
+              <button onclick="acceptMarriageProposal('${name}','${ringId}')" style="padding:5px 10px; border-radius:6px; border:none; background:#7FBF3F; color:#0B120D; font-weight:700; font-size:0.72rem; cursor:pointer;">Kabul Et</button>
+              <button onclick="declineMarriageProposal('${name}')" style="padding:5px 10px; border-radius:6px; border:none; background:#3A0A14; color:#fff; font-weight:700; font-size:0.72rem; cursor:pointer;">Reddet</button>
+            </span>`;
+          box.appendChild(row);
+        });
+      });
+
+      // evlilik listesi (geçmiş + varsa şu anki), gün sayısına göre en çoktan aza
+      const history = Object.values(u.marriageHistory || {});
+      const entries = history.map(h => ({ spouse: h.spouse, days: h.days, active: false }));
+      if (marriage && marriage.spouse) {
+        entries.push({ spouse: marriage.spouse, days: daysBetween(marriage.since, Date.now()), active: true });
+      }
+      entries.sort((a, b) => b.days - a.days);
+      const listBox = document.getElementById('marriageHistoryList');
+      listBox.innerHTML = '';
+      if (entries.length === 0) {
+        listBox.innerHTML = '<div style="color:var(--muted); font-size:0.8rem;">Henüz evlilik geçmişin yok.</div>';
+      }
+      entries.forEach((e, i) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; background:#150F12; border-radius:8px; padding:8px 10px;';
+        row.innerHTML = `<span>${i + 1}. ${e.spouse} ${e.active ? '💍 (şu anki eş)' : ''}</span><span style="color:var(--muted); font-size:0.78rem;">${e.days} gün</span>`;
+        listBox.appendChild(row);
+      });
+    });
+  }
+
+  // Tycoon tarzı avatar: sade yuvarlak kafa/gövde + takılabilir şapka/kanat/pandufl.
+  const BODY_COLORS = ['#FDE1C8', '#F4C9A0', '#D9A066', '#A9683F', '#6B4226', '#E8A0BF', '#B7E4C7', '#A0C4E8', '#F6C7D9', '#2A2A2A'];
+
+  let currentAvatar = { color: BODY_COLORS[0], hat: null, wings: null, slippers: null, frame: null };
+
+  // ================= LİSTELER (LEADERBOARD) =================
+  let currentLeaderboardTab = 'populer';
+
+  function openLeaderboardPanel() {
+    switchLeaderboardTab('populer');
+    document.getElementById('leaderboardPanel').style.display = 'flex';
+  }
+  function closeLeaderboardPanel() {
+    document.getElementById('leaderboardPanel').style.display = 'none';
+  }
+
+  function switchLeaderboardTab(tab) {
+    currentLeaderboardTab = tab;
+    document.querySelectorAll('.leaderTab').forEach(btn => {
+      const active = btn.dataset.tab === tab;
+      btn.style.background = active ? 'rgba(217,67,107,0.15)' : '#150F12';
+      btn.style.color = active ? 'var(--text)' : 'var(--muted)';
+      btn.style.borderColor = active ? 'var(--pink-hot)' : 'rgba(232,140,175,0.25)';
+    });
+    renderLeaderboard();
+  }
+
+  function renderLeaderboard() {
+    const list = document.getElementById('leaderboardList');
+    list.innerHTML = '<div style="color:var(--muted); text-align:center; font-size:0.8rem;">Yükleniyor...</div>';
+    db.ref('users').get().then(snap => {
+      const all = snap.val() || {};
+      let entries = [];
+      Object.keys(all).forEach(name => {
+        const u = all[name];
+        if (currentLeaderboardTab === 'populer') {
+          entries.push({ name, value: u.popularity || 0, label: formatNum(u.popularity || 0) + ' 💎' });
+        } else if (currentLeaderboardTab === 'sevilen') {
+          const likeCount = Object.keys(u.likedBy || {}).length;
+          if (likeCount > 0) entries.push({ name, value: likeCount, label: formatNum(likeCount) + ' ❤️' });
+        } else if (currentLeaderboardTab === 'evlilik') {
+          if (u.marriage && u.marriage.spouse) {
+            const days = daysBetween(u.marriage.since, Date.now());
+            entries.push({ name, value: days, label: days + '. gün · 💍 ' + u.marriage.spouse });
+          }
+        } else if (currentLeaderboardTab === 'yakinarkadas') {
+          const friends = u.friends || {};
+          let best = null;
+          Object.keys(friends).forEach(fname => {
+            const f = friends[fname];
+            if (!best || (f.bondScore || 0) > best.bondScore) best = { name: fname, bondScore: f.bondScore || 0, since: f.since };
+          });
+          if (best && best.since && best.bondScore > 0) {
+            const days = daysBetween(best.since, Date.now());
+            entries.push({ name, value: days, label: days + '. gün · 🤍 ' + best.name });
+          }
+        }
+      });
+      entries.sort((a, b) => b.value - a.value);
+      entries = entries.slice(0, 20);
+      list.innerHTML = '';
+      if (entries.length === 0) {
+        list.innerHTML = '<div style="color:var(--muted); text-align:center; font-size:0.85rem;">Henüz kimse yok.</div>';
+        return;
+      }
+      entries.forEach((e, i) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; background:#150F12; border-radius:8px; padding:10px 12px; cursor:pointer;';
+        row.onclick = () => openMiniProfile(e.name);
+        const rankIcon = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
+        row.innerHTML = `<span style="font-weight:700;">${rankIcon} ${e.name}</span><span style="color:var(--pink-hot); font-size:0.8rem; font-weight:700;">${e.label}</span>`;
+        list.appendChild(row);
+      });
+    });
+  }
+
+  // ---------- mini profil + beğeni ----------
+  function openMiniProfile(name) {
+    db.ref('users/' + name).get().then(snap => {
+      const u = snap.val() || {};
+      const likedByMe = !!(u.likedBy && u.likedBy[currentPlayerName]);
+      const likeCount = Object.keys(u.likedBy || {}).length;
+      const isMe = name === currentPlayerName;
+      const box = document.getElementById('miniProfileBody');
+      const picStyle = u.photoUrl
+        ? `background:url('${u.photoUrl}') center/cover;`
+        : `background:${u.gender === 'erkek' ? 'linear-gradient(135deg,#2A2A2A,#0E0A0C)' : 'linear-gradient(135deg, var(--pink), var(--pink-hot))'}; display:flex; align-items:center; justify-content:center; font-size:1.8rem;`;
+      box.innerHTML = `
+        <div id="miniProfilePic" style="width:64px; height:64px; border-radius:50%; margin:0 auto 10px; ${picStyle}">${u.photoUrl ? '' : '🌸'}</div>
+        <div style="font-size:1.2rem; font-weight:800; color:var(--pink);">${name}</div>
+        <div style="color:var(--muted); font-size:0.8rem; margin:6px 0;">Level ${u.level || 1} · ${formatNum(u.popularity || 0)} popülerlik</div>
+        <div style="color:var(--pink-hot); font-weight:700; margin-bottom:10px;">❤️ ${formatNum(likeCount)} beğeni</div>
+        ${isMe ? '<div style="color:var(--muted); font-size:0.75rem;">Kendi profilin</div>' :
+          `<button onclick="toggleLike('${name}')" style="padding:8px 16px; border-radius:8px; border:1px solid var(--pink-hot); background:${likedByMe ? 'var(--pink-hot)' : 'transparent'}; color:${likedByMe ? '#fff' : 'var(--pink)'}; font-weight:700; cursor:pointer;">${likedByMe ? '💔 Beğenmekten Vazgeç' : '❤️ Beğen'}</button>`}
+      `;
+      applyFrameToElement(document.getElementById('miniProfilePic'), u.avatar && u.avatar.frame);
+      document.getElementById('miniProfileModal').style.display = 'flex';
+    });
+  }
+  function closeMiniProfile() {
+    document.getElementById('miniProfileModal').style.display = 'none';
+  }
+  function toggleLike(name) {
+    if (name === currentPlayerName) return;
+    const ref = db.ref('users/' + name + '/likedBy/' + currentPlayerName);
+    ref.get().then(snap => {
+      if (snap.exists()) {
+        ref.remove().then(() => openMiniProfile(name));
+      } else {
+        ref.set(true).then(() => openMiniProfile(name));
+      }
+    });
+  }
+
+  // Şapka/kanat/pandufl item'larının "variant" alanına göre basit, orijinal (telif taşımayan)
+  // şekiller çizen yardımcılar. Kafa merkezi (100,58) yarıçap 36 baz alınarak konumlandırılıyor.
+  // ================= 3D AVATAR (Three.js) =================
+  // Kesin oranlar (dünya birimi): gövde genişliği=1 -> kafa çapı=1.2 (x1.2),
+  // uzuv kalınlığı=1/3, gövde kısa/geniş, kollar omuzdan diz seviyesine iniyor.
+  // Kafa/gövde/uzuvlar hep KÜRE tabanlı (capsule) çizildiği için doğal olarak
+  // yumuşak/tek parça durur — köşe/dikiş sorunu olmaz.
+  const AVATAR_BODY_W = 1.0;
+  const AVATAR_HEAD_R = (AVATAR_BODY_W * 1.2) / 2;
+  const AVATAR_LIMB_R = AVATAR_BODY_W / 6; // çap = genişlik/3
+  const AVATAR_MAT_CACHE = {};
+
+  function avatarMaterial(color) {
+    if (!AVATAR_MAT_CACHE[color]) {
+      AVATAR_MAT_CACHE[color] = new THREE.MeshStandardMaterial({ color, roughness: 0.42, metalness: 0.06 });
+    }
+    return AVATAR_MAT_CACHE[color];
+  }
+
+  // Silindir gövde + iki uç küre = köşesiz "kapsül" (r128'de CapsuleGeometry yok, bu yüzden elle kuruluyor).
+  function makeCapsule(radius, length, material) {
+    const group = new THREE.Group();
+    const cylH = Math.max(length - radius * 2, 0.01);
+    const cyl = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, cylH, 16), material);
+    group.add(cyl);
+    const capTop = new THREE.Mesh(new THREE.SphereGeometry(radius, 16, 12), material);
+    capTop.position.y = cylH / 2;
+    group.add(capTop);
+    const capBottom = new THREE.Mesh(new THREE.SphereGeometry(radius, 16, 12), material);
+    capBottom.position.y = -cylH / 2;
+    group.add(capBottom);
+    return group;
+  }
+
+  // Şapka/kanat/pandufl item'larının variant.type'ına göre basit, orijinal 3B parçalar üretir.
+  function build3DHat(item, headR) {
+    if (!item || !item.variant) return null;
+    const v = item.variant;
+    const mat = new THREE.MeshStandardMaterial({ color: v.color || '#fff', roughness: 0.5 });
+    const g = new THREE.Group();
+    if (v.type === 'kep') {
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(headR * 1.04, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.42), mat);
+      g.add(dome);
+      const brim = new THREE.Mesh(new THREE.CylinderGeometry(headR * 0.55, headR * 0.55, headR * 0.08, 16), mat);
+      brim.position.set(0, headR * 0.42, headR * 0.85);
+      brim.rotation.x = Math.PI / 2.3;
+      g.add(brim);
+    } else if (v.type === 'kovboy') {
+      const brim = new THREE.Mesh(new THREE.CylinderGeometry(headR * 1.35, headR * 1.35, headR * 0.1, 20), mat);
+      brim.position.y = headR * 0.35;
+      g.add(brim);
+      const crown = new THREE.Mesh(new THREE.ConeGeometry(headR * 0.6, headR * 0.9, 16), mat);
+      crown.position.y = headR * 0.85;
+      g.add(crown);
+    } else if (v.type === 'bere' || v.type === 'esarp') {
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(headR * 1.06, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), mat);
+      g.add(dome);
+      if (v.accent) {
+        const dotMat = new THREE.MeshStandardMaterial({ color: v.accent, roughness: 0.5 });
+        [[-0.35, 0.55, 0.55], [0.3, 0.35, 0.7], [0, 0.7, 0.4]].forEach(p => {
+          const dot = new THREE.Mesh(new THREE.SphereGeometry(headR * 0.1, 8, 8), dotMat);
+          dot.position.set(p[0] * headR * 1.1, p[1] * headR * 1.1, p[2] * headR * 1.1);
+          g.add(dot);
+        });
+      }
+    } else if (v.type === 'tac') {
+      const band = new THREE.Mesh(new THREE.TorusGeometry(headR * 1.03, headR * 0.1, 8, 20, Math.PI), mat);
+      band.rotation.x = Math.PI / 2;
+      band.rotation.z = Math.PI;
+      band.position.y = headR * 0.05;
+      g.add(band);
+    } else if (v.type === 'maske') {
+      const face = new THREE.Mesh(new THREE.SphereGeometry(headR * 1.05, 16, 12), mat);
+      g.add(face);
+      const darkMat = new THREE.MeshStandardMaterial({ color: '#1A1A1A', roughness: 0.6 });
+      [[-0.32, 0.1], [0.32, 0.1]].forEach(p => {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(headR * 0.14, 8, 8), darkMat);
+        eye.position.set(p[0] * headR, p[1] * headR, headR * 0.92);
+        g.add(eye);
+      });
+    } else if (v.type === 'boynuz') {
+      [-1, 1].forEach(side => {
+        const horn = new THREE.Mesh(new THREE.ConeGeometry(headR * 0.14, headR * 0.5, 10), mat);
+        horn.position.set(side * headR * 0.58, headR * 0.82, headR * 0.3);
+        horn.rotation.z = side * -0.35;
+        g.add(horn);
+      });
+    }
+    return g;
+  }
+  function build3DWings(item) {
+    if (!item || !item.variant) return null;
+    const mat = new THREE.MeshStandardMaterial({ color: item.variant.color || '#fff', roughness: 0.55, side: THREE.DoubleSide });
+    const g = new THREE.Group();
+    [-1, 1].forEach(side => {
+      const wing = new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.1, 4, 1, true), mat);
+      wing.scale.set(0.55, 1, 0.18);
+      wing.rotation.z = side * 1.15;
+      wing.rotation.y = side * 0.3;
+      wing.position.set(side * 0.55, 0.15, -0.35);
+      g.add(wing);
+    });
+    return g;
+  }
+  function build3DFoot(item) {
+    const v = (item && item.variant) || {};
+    const mat = new THREE.MeshStandardMaterial({ color: v.color || '#E8C9A0', roughness: 0.5 });
+    const g = new THREE.Group();
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(AVATAR_LIMB_R * 1.35, 12, 10), mat);
+    ball.scale.set(1, 0.7, 1.3);
+    g.add(ball);
+    const ear = v.ear || 'round';
+    const earGeo = ear === 'long'
+      ? new THREE.SphereGeometry(AVATAR_LIMB_R * 0.35, 8, 8)
+      : new THREE.ConeGeometry(AVATAR_LIMB_R * 0.4, AVATAR_LIMB_R * 0.6, 8);
+    [-1, 1].forEach(side => {
+      const e = new THREE.Mesh(earGeo, mat);
+      e.scale.set(1, ear === 'long' ? 2.2 : 1, 1);
+      e.position.set(side * AVATAR_LIMB_R * 0.9, AVATAR_LIMB_R * 0.5, -AVATAR_LIMB_R * 0.4);
+      g.add(e);
+    });
+    return g;
+  }
+
+  // Tek bir avatar grubu (kafa+gövde+kollar+bacaklar+takılar) kurar. Yüz KESİNLİKLE yok.
+  function build3DAvatarGroup(a) {
+    a = a || {};
+    const color = a.color || BODY_COLORS[0];
+    const mat = avatarMaterial(color);
+    const group = new THREE.Group();
+
+    // gövde: gerçek kapsül (silindir + iki yuvarlak uç) — küre+ölçek yerine bu kullanılıyor,
+    // çünkü sıkıştırılmış küre "top gibi" duruyordu; kapsül referanstaki gibi daha silindirik/uzun durur.
+    const bodyRadius = AVATAR_BODY_W * 0.4;
+    const bodyHeight = AVATAR_BODY_W * 1.05;
+    const bodyHalfW = bodyRadius;   // gövdenin yatay yarı-genişliği
+    const bodyHalfH = bodyHeight / 2; // gövdenin dikey yarı-yüksekliği
+    const body = makeCapsule(bodyRadius, bodyHeight, mat);
+    group.add(body);
+
+    // baş: gövde genişliğinin 1.2 katı çapında, gövdeye derin gömülü
+    const head = new THREE.Mesh(new THREE.SphereGeometry(AVATAR_HEAD_R, 24, 18), mat);
+    head.position.y = bodyHalfH * 0.55 + AVATAR_HEAD_R * 0.72;
+    group.add(head);
+    const headTopY = head.position.y + AVATAR_HEAD_R;
+
+    // bacak geometrisi önce belirleniyor ki "diz seviyesi" kolların gerçek hedefi olsun
+    const legLen = AVATAR_BODY_W * 0.95;
+    const legY = -(bodyHalfH * 0.75) - legLen / 2 + AVATAR_LIMB_R;
+    const kneeY = legY; // bacağın dikey orta noktası ~ diz seviyesi
+
+    // kollar: omuzdan diz seviyesine (kneeY) iniyor, gövdenin YANINDAN (bodyHalfW) çıkıyor —
+    // önceki formül burada yanlışlıkla dikey yarı-yükseklik (bodyHalfH) kullanıyordu,
+    // bu da kolları gövdenin içine gömüp neredeyse görünmez yapıyordu; düzeltildi.
+    const shoulderY = bodyHalfH * 0.45;
+    const armLen = (shoulderY - kneeY) * 1.08;
+    [-1, 1].forEach(side => {
+      const arm = makeCapsule(AVATAR_LIMB_R, armLen, mat);
+      arm.position.set(side * (bodyHalfW + AVATAR_LIMB_R * 0.25), shoulderY - armLen * 0.42, 0);
+      arm.rotation.z = side * 0.09;
+      group.add(arm);
+    });
+
+    // bacaklar: kısa/kalın, gövdeye derin gömülü
+    const legGap = AVATAR_LIMB_R * 1.3;
+    const feetY = legY - legLen / 2;
+    [-1, 1].forEach(side => {
+      const leg = makeCapsule(AVATAR_LIMB_R, legLen, mat);
+      leg.position.set(side * legGap, legY, 0);
+      group.add(leg);
+    });
+
+    // takılar
+    const hatItem = a.hat ? findStoreItem('sapka', a.hat) : null;
+    if (hatItem) {
+      const hat = build3DHat(hatItem, AVATAR_HEAD_R);
+      if (hat) { hat.position.y = head.position.y; group.add(hat); }
+    }
+    const wingsItem = a.wings ? findStoreItem('kanat', a.wings) : null;
+    if (wingsItem) {
+      const wings = build3DWings(wingsItem);
+      if (wings) { wings.position.y = shoulderY * 0.4; group.add(wings); }
+    }
+    const slippersItem = a.slippers ? findStoreItem('pandufl', a.slippers) : null;
+    if (slippersItem) {
+      [-1, 1].forEach(side => {
+        const foot = build3DFoot(slippersItem);
+        foot.position.set(side * legGap, feetY, AVATAR_LIMB_R * 0.3);
+        group.add(foot);
+      });
+    }
+
+    // taban platformu (basit, gölge hissi veren yarı saydam disk)
+    const platMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28 });
+    const platform = new THREE.Mesh(new THREE.CircleGeometry(AVATAR_BODY_W * 0.85, 24), platMat);
+    platform.rotation.x = -Math.PI / 2;
+    platform.position.y = feetY - AVATAR_LIMB_R * 0.4;
+    group.add(platform);
+
+    return { group, headTopY, feetY };
+  }
+
+  function buildAvatarScene(width, height) {
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(32, width / height, 0.1, 20);
+    camera.position.set(0, 0.15, 4.2);
+    camera.lookAt(0, 0.15, 0);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+    const key = new THREE.DirectionalLight(0xffffff, 0.85);
+    key.position.set(1.5, 2.4, 2.2);
+    scene.add(key);
+    const fill = new THREE.DirectionalLight(0xffffff, 0.28);
+    fill.position.set(-2, 0.5, -1.5);
+    scene.add(fill);
+    return { scene, camera };
+  }
+
+  // Tek seferlik, ekrana bağlı olmayan render → PNG dataURL (küçük ikonlar/profil için, WebGL context'i tekrar kullanılıp bellek şişirmiyor).
+  let _snapshotRenderer = null;
+  function renderAvatarSnapshot(a, size) {
+    size = size || 128;
+    if (typeof THREE === 'undefined') return null;
+    if (!_snapshotRenderer) {
+      _snapshotRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+    }
+    _snapshotRenderer.setSize(size, size, false);
+    _snapshotRenderer.setClearColor(0x000000, 0);
+    const { scene, camera } = buildAvatarScene(size, size);
+    const { group } = build3DAvatarGroup(a);
+    scene.add(group);
+    _snapshotRenderer.render(scene, camera);
+    return _snapshotRenderer.domElement.toDataURL('image/png');
+  }
+
+
+  let wardrobeInventory = {}; // { sapka: {id:true,...}, kanat:{...}, pandufl:{...} }
+
+  // Gardıropta canlı, sürükle-döndür 3D önizleyici. Sadece panel açıkken render döngüsü çalışır (pil/perf).
+  const avatar3D = {
+    renderer: null, scene: null, camera: null, group: null,
+    rotY: 0, camZ: 4.2, dragging: false, lastX: 0, running: false,
+    init() {
+      const canvas = document.getElementById('avatarPreview3D');
+      if (!this.renderer) {
+        this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+      }
+      this.renderer.setSize(220, 260, false);
+      this.renderer.setClearColor(0x000000, 0);
+      const built = buildAvatarScene(220, 260);
+      this.scene = built.scene;
+      this.camera = built.camera;
+      canvas.onpointerdown = e => { this.dragging = true; this.lastX = e.clientX; canvas.style.cursor = 'grabbing'; };
+      window.addEventListener('pointerup', () => { this.dragging = false; canvas.style.cursor = 'grab'; });
+      window.addEventListener('pointermove', e => {
+        if (!this.dragging) return;
+        this.rotY += (e.clientX - this.lastX) * 0.012;
+        this.lastX = e.clientX;
+        this.applyView();
+      });
+    },
+    rebuild(avatarData) {
+      if (this.group) this.scene.remove(this.group);
+      const built = build3DAvatarGroup(avatarData);
+      this.group = built.group;
+      this.group.rotation.y = this.rotY;
+      this.scene.add(this.group);
+      this.renderer.render(this.scene, this.camera);
+    },
+    applyView() {
+      if (this.group) this.group.rotation.y = this.rotY;
+      this.camera.position.z = this.camZ;
+      this.renderer.render(this.scene, this.camera);
+    },
+    zoom(dir) { this.camZ = Math.min(6, Math.max(2.4, this.camZ + dir * 0.5)); this.applyView(); },
+    resetView() { this.rotY = 0; this.camZ = 4.2; this.applyView(); },
+  };
+
+  function openWardrobePanel() {
+    db.ref('users/' + currentPlayerName).get().then(snap => {
+      const u = snap.val() || {};
+      if (u.avatar) currentAvatar = u.avatar;
+      wardrobeInventory = u.inventory || {};
+      avatar3D.init();
+      avatar3D.resetView();
+      renderWardrobePanel();
+      document.getElementById('wardrobePanel').style.display = 'flex';
+    });
+  }
+  function closeWardrobePanel() {
+    document.getElementById('wardrobePanel').style.display = 'none';
+  }
+
+  function swatchRow(containerId, options, currentVal, keyName, isColor) {
+    const box = document.getElementById(containerId);
+    box.innerHTML = '';
+    options.forEach(opt => {
+      const el = document.createElement('button');
+      const selected = opt === currentVal;
+      el.style.cssText = isColor
+        ? `width:34px; height:34px; border-radius:50%; background:${opt}; border:3px solid ${selected ? 'var(--pink)' : 'transparent'}; cursor:pointer;`
+        : `padding:8px 14px; border-radius:8px; border:1px solid ${selected ? 'var(--pink-hot)' : 'rgba(232,140,175,0.25)'}; background:${selected ? 'rgba(217,67,107,0.15)' : '#150F12'}; color:${selected ? 'var(--pink)' : 'var(--muted)'}; font-weight:700; cursor:pointer; font-size:0.8rem;`;
+      if (!isColor) el.textContent = opt;
+      el.onclick = () => { currentAvatar[keyName] = opt; renderWardrobePanel(); };
+      box.appendChild(el);
+    });
+  }
+
+  // Şapka/kanat/pandufl için: "Yok" seçeneği + sahip olunan ürünler arasından seçim.
+  function equipRow(containerId, cat, avatarKey) {
+    const box = document.getElementById(containerId);
+    box.innerHTML = '';
+    const owned = wardrobeInventory[cat] || {};
+    const ownedIds = Object.keys(owned).filter(id => owned[id]);
+
+    const noneBtn = document.createElement('button');
+    const noneSelected = !currentAvatar[avatarKey];
+    noneBtn.textContent = 'Yok';
+    noneBtn.style.cssText = `padding:8px 14px; border-radius:8px; border:1px solid ${noneSelected ? 'var(--pink-hot)' : 'rgba(232,140,175,0.25)'}; background:${noneSelected ? 'rgba(217,67,107,0.15)' : '#150F12'}; color:${noneSelected ? 'var(--pink)' : 'var(--muted)'}; font-weight:700; cursor:pointer; font-size:0.8rem;`;
+    noneBtn.onclick = () => { currentAvatar[avatarKey] = null; renderWardrobePanel(); };
+    box.appendChild(noneBtn);
+
+    if (ownedIds.length === 0) {
+      const hint = document.createElement('div');
+      hint.style.cssText = 'color:var(--muted); font-size:0.72rem; align-self:center;';
+      hint.textContent = 'Henüz mağazadan almadın.';
+      box.appendChild(hint);
+      return;
+    }
+    ownedIds.forEach(itemId => {
+      const item = findStoreItem(cat, itemId);
+      if (!item) return;
+      const selected = currentAvatar[avatarKey] === itemId;
+      const btn = document.createElement('button');
+      btn.textContent = item.icon + ' ' + item.name;
+      btn.style.cssText = `padding:8px 14px; border-radius:8px; border:1px solid ${selected ? 'var(--pink-hot)' : 'rgba(232,140,175,0.25)'}; background:${selected ? 'rgba(217,67,107,0.15)' : '#150F12'}; color:${selected ? 'var(--pink)' : 'var(--muted)'}; font-weight:700; cursor:pointer; font-size:0.78rem;`;
+      btn.onclick = () => { currentAvatar[avatarKey] = itemId; renderWardrobePanel(); };
+      box.appendChild(btn);
+    });
+  }
+
+  function renderWardrobePanel() {
+    avatar3D.rebuild(currentAvatar);
+    swatchRow('bodyColorSwatches', BODY_COLORS, currentAvatar.color, 'color', true);
+    equipRow('hatEquipRow', 'sapka', 'hat');
+    equipRow('wingsEquipRow', 'kanat', 'wings');
+    equipRow('slippersEquipRow', 'pandufl', 'slippers');
+    equipRow('frameEquipRow', 'cerceve', 'frame');
+  }
+
+  function saveAvatar() {
+    // Kayıtla birlikte, avatarın önden 3D görünümünün bir PNG "fotoğrafı" da alınıyor —
+    // oda listesi/profil gibi yerlerde her seferinde 3D sahne kurmak yerine bu görsel kullanılıyor (hafif, hızlı).
+    const snapshot = renderAvatarSnapshot(currentAvatar, 160);
+    const payload = Object.assign({}, currentAvatar, { snapshotUrl: snapshot });
+    db.ref('users/' + currentPlayerName + '/avatar').set(payload).then(() => {
+      document.getElementById('avatarSaveMsg').textContent = 'Kaydedildi ✓';
+      setTimeout(() => { document.getElementById('avatarSaveMsg').textContent = ''; }, 1800);
+    });
+  }
+
+
+  // ================= ARKADAŞLIK SİSTEMİ =================
+  const FRIEND_LIMIT_NORMAL = 100;
+  const FRIEND_LIMIT_POPULAR = 1000;
+  const YAKIN_ESIGI = 20;   // bondScore >= 20 -> yakın arkadaş
+  const EN_YAKIN_ESIGI = 50; // en yüksek bondScore >= 50 ve listede en yüksekse -> en yakın arkadaş
+
+  function dmKey(a, b) { return [a, b].sort().join('__'); }
+
+  async function friendLimitFor(name) {
+    const snap = await db.ref('users/' + name + '/popularity').get();
+    const pop = snap.val() || 0;
+    return pop >= 100000 ? FRIEND_LIMIT_POPULAR : FRIEND_LIMIT_NORMAL;
+  }
+
+  function sendFriendRequest() {
+    const input = document.getElementById('addFriendInput');
+    const target = input.value.trim();
+    if (!target || target === currentPlayerName) return;
+    db.ref('users/' + target).get().then(snap => {
+      if (!snap.exists()) { alert('Böyle bir kullanıcı yok.'); return; }
+      const targetData = snap.val();
+      db.ref('friendRequests/' + target + '/' + currentPlayerName).set({ ts: Date.now() }).then(() => {
+        // Welcomer rozeti: hesabı 7 günden yeni oyunculara istek gönderdikçe sayılır
+        if (targetData.joinedAt && (Date.now() - targetData.joinedAt) < 7 * 86400000) {
+          db.ref('users/' + currentPlayerName + '/welcomedPlayers/' + target).set(true);
+        }
+        alert('İstek gönderildi 🌸');
+        input.value = '';
+      });
+    });
+  }
+
+  function acceptFriendRequest(fromName) {
+    Promise.all([friendLimitFor(currentPlayerName), friendLimitFor(fromName)]).then(([myLimit, theirLimit]) => {
+      Promise.all([
+        db.ref('users/' + currentPlayerName + '/friends').get(),
+        db.ref('users/' + fromName + '/friends').get()
+      ]).then(([mySnap, theirSnap]) => {
+        const myCount = Object.keys(mySnap.val() || {}).length;
+        const theirCount = Object.keys(theirSnap.val() || {}).length;
+        if (myCount >= myLimit) { alert('Arkadaş limitine ulaştın (' + myLimit + ').'); return; }
+        if (theirCount >= theirLimit) { alert(fromName + ' arkadaş limitine ulaşmış.'); return; }
+        const since = Date.now();
+        const updates = {};
+        updates['users/' + currentPlayerName + '/friends/' + fromName] = { since, bondScore: 0 };
+        updates['users/' + fromName + '/friends/' + currentPlayerName] = { since, bondScore: 0 };
+        updates['friendRequests/' + currentPlayerName + '/' + fromName] = null;
+        db.ref().update(updates).then(() => renderFriendsPanel());
+      });
+    });
+  }
+
+  function declineFriendRequest(fromName) {
+    db.ref('friendRequests/' + currentPlayerName + '/' + fromName).remove().then(() => renderFriendsPanel());
+  }
+
+  function removeFriend(name) {
+    if (!confirm(name + ' arkadaşlıktan çıkarılsın mı?')) return;
+    const updates = {};
+    updates['users/' + currentPlayerName + '/friends/' + name] = null;
+    updates['users/' + name + '/friends/' + currentPlayerName] = null;
+    db.ref().update(updates).then(() => renderFriendsPanel());
+  }
+
+  function blockFriend(name) {
+    if (!confirm(name + ' engellensin mi? Arkadaşlıktan da çıkarılacak.')) return;
+    const updates = {};
+    updates['users/' + currentPlayerName + '/friends/' + name] = null;
+    updates['users/' + name + '/friends/' + currentPlayerName] = null;
+    updates['users/' + currentPlayerName + '/blocked/' + name] = true;
+    db.ref().update(updates).then(() => renderFriendsPanel());
+  }
+
+  function openFriendsPanel() {
+    document.getElementById('friendsPanel').style.display = 'flex';
+    renderFriendsPanel();
+  }
+  function closeFriendsPanel() {
+    document.getElementById('friendsPanel').style.display = 'none';
+  }
+
+  function renderFriendsPanel() {
+    // gelen istekler
+    db.ref('friendRequests/' + currentPlayerName).get().then(snap => {
+      const reqs = snap.val() || {};
+      const box = document.getElementById('friendRequestsBox');
+      box.innerHTML = '';
+      const names = Object.keys(reqs);
+      if (names.length > 0) {
+        const title = document.createElement('div');
+        title.style.cssText = 'color:var(--muted); font-size:0.78rem; margin-bottom:6px;';
+        title.textContent = 'Gelen İstekler';
+        box.appendChild(title);
+      }
+      names.forEach(name => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:#150F12; border-radius:8px; padding:8px 10px; margin-bottom:6px;';
+        row.innerHTML = `<span style="font-weight:700;">${name}</span>
+          <div style="display:flex; gap:6px;">
+            <button onclick="acceptFriendRequest('${name}')" style="padding:5px 10px; border-radius:6px; border:none; background:#7FBF3F; color:#0B120D; font-weight:700; font-size:0.72rem; cursor:pointer;">Kabul Et</button>
+            <button onclick="declineFriendRequest('${name}')" style="padding:5px 10px; border-radius:6px; border:none; background:#3A0A14; color:#fff; font-weight:700; font-size:0.72rem; cursor:pointer;">Reddet</button>
+          </div>`;
+        box.appendChild(row);
+      });
+    });
+
+    // arkadaş listesi
+    db.ref('users/' + currentPlayerName + '/friends').get().then(snap => {
+      const friends = snap.val() || {};
+      const names = Object.keys(friends);
+      let enYakinName = null, maxScore = 0;
+      names.forEach(n => {
+        const score = friends[n].bondScore || 0;
+        if (score >= EN_YAKIN_ESIGI && score > maxScore) { maxScore = score; enYakinName = n; }
+      });
+
+      const list = document.getElementById('friendsList');
+      list.innerHTML = '';
+      if (names.length === 0) {
+        list.innerHTML = '<div style="color:var(--muted); font-size:0.8rem;">Henüz arkadaşın yok.</div>';
+      }
+      names.forEach(name => {
+        const score = friends[name].bondScore || 0;
+        let symbol = '🤍';
+        if (name === enYakinName) symbol = '💖';
+        else if (score >= YAKIN_ESIGI) symbol = '💛';
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:#150F12; border-radius:10px; padding:9px 12px;';
+        row.innerHTML = `<span style="font-weight:700;">${symbol} ${name}</span>
+          <div style="display:flex; gap:6px;">
+            <button onclick="openDM('${name}')" style="padding:5px 10px; border-radius:6px; border:1px solid var(--pink-hot); background:rgba(217,67,107,0.12); color:var(--pink); font-weight:700; font-size:0.7rem; cursor:pointer;">💬 Mesaj</button>
+            <button onclick="removeFriend('${name}')" style="padding:5px 10px; border-radius:6px; border:1px solid rgba(232,140,175,0.25); background:transparent; color:var(--muted); font-weight:700; font-size:0.7rem; cursor:pointer;">Sil</button>
+            <button onclick="blockFriend('${name}')" style="padding:5px 8px; border-radius:6px; border:1px solid rgba(232,140,175,0.25); background:transparent; color:var(--muted); font-weight:700; font-size:0.7rem; cursor:pointer;">🚫</button>
+          </div>`;
+        list.appendChild(row);
+      });
+    });
+
+    // gruplarım
+    db.ref('users/' + currentPlayerName + '/groups').get().then(snap => {
+      const groups = snap.val() || {};
+      const box = document.getElementById('groupsList');
+      box.innerHTML = '';
+      const ids = Object.keys(groups);
+      if (ids.length === 0) {
+        box.innerHTML = '<div style="color:var(--muted); font-size:0.8rem;">Henüz bir grubun yok.</div>';
+      }
+      ids.forEach(gid => {
+        db.ref('groups/' + gid + '/name').get().then(nSnap => {
+          const row = document.createElement('div');
+          row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:#150F12; border-radius:10px; padding:9px 12px;';
+          row.innerHTML = `<span style="font-weight:700;">👥 ${nSnap.val() || 'Grup'}</span>
+            <button onclick="openGroupChat('${gid}')" style="padding:5px 10px; border-radius:6px; border:1px solid var(--pink-hot); background:rgba(217,67,107,0.12); color:var(--pink); font-weight:700; font-size:0.7rem; cursor:pointer;">Aç</button>`;
+          box.appendChild(row);
+        });
+      });
+    });
+  }
+
+  // ---------- DM (özel mesaj) ----------
+  let currentDMFriend = null;
+  let dmListenerRef = null, dmListenerCb = null;
+
+  function openDM(friendName) {
+    currentDMFriend = friendName;
+    document.getElementById('dmTitle').textContent = '💬 ' + friendName;
+    document.getElementById('dmMessages').innerHTML = '';
+    document.getElementById('dmPanel').style.display = 'flex';
+
+    const key = dmKey(currentPlayerName, friendName);
+    const ref = db.ref('dms/' + key + '/messages');
+    if (dmListenerRef) dmListenerRef.off('child_added', dmListenerCb);
+    dmListenerCb = ref.limitToLast(50).on('child_added', snap => {
+      const msg = snap.val();
+      const box = document.getElementById('dmMessages');
+      const line = document.createElement('div');
+      const mine = msg.from === currentPlayerName;
+      line.style.cssText = 'align-self:' + (mine ? 'flex-end' : 'flex-start') + '; background:' + (mine ? 'var(--pink-hot)' : '#150F12') + '; color:' + (mine ? '#fff' : 'var(--text)') + '; padding:8px 12px; border-radius:12px; max-width:75%; font-size:0.85rem;';
+      line.textContent = msg.photo ? '📷 ' + msg.photo : msg.text;
+      box.appendChild(line);
+      box.scrollTop = box.scrollHeight;
+    });
+    dmListenerRef = ref;
+  }
+
+  function closeDM() {
+    if (dmListenerRef) dmListenerRef.off('child_added', dmListenerCb);
+    document.getElementById('dmPanel').style.display = 'none';
+    currentDMFriend = null;
+  }
+
+  function sendDM() {
+    const input = document.getElementById('dmInput');
+    const text = input.value.trim();
+    if (!text || !currentDMFriend) return;
+    const key = dmKey(currentPlayerName, currentDMFriend);
+    db.ref('dms/' + key + '/messages').push({ from: currentPlayerName, text, ts: Date.now() });
+    input.value = '';
+    bumpBondScore(currentDMFriend);
+  }
+
+  function attachDMPhoto() {
+    const url = prompt('Fotoğraf linki yapıştır (gerçek yükleme, gardırop sistemiyle birlikte gelecek):');
+    if (!url || !currentDMFriend) return;
+    const key = dmKey(currentPlayerName, currentDMFriend);
+    db.ref('dms/' + key + '/messages').push({ from: currentPlayerName, photo: url, ts: Date.now() });
+    bumpBondScore(currentDMFriend);
+  }
+
+  function bumpBondScore(friendName) {
+    ['users/' + currentPlayerName + '/friends/' + friendName + '/bondScore',
+     'users/' + friendName + '/friends/' + currentPlayerName + '/bondScore'].forEach(path => {
+      db.ref(path).transaction(v => (v || 0) + 1);
+    });
+  }
+
+  // ---------- GRUPLAR ----------
+  function openGroupCreate() {
+    db.ref('users/' + currentPlayerName + '/friends').get().then(snap => {
+      const friends = Object.keys(snap.val() || {});
+      const picker = document.getElementById('groupMemberPicker');
+      picker.innerHTML = '';
+      if (friends.length === 0) {
+        picker.innerHTML = '<div style="color:var(--muted); font-size:0.8rem;">Grup kurmak için önce arkadaşın olmalı.</div>';
+      }
+      friends.forEach(name => {
+        const row = document.createElement('label');
+        row.style.cssText = 'display:flex; align-items:center; gap:8px; background:#150F12; border-radius:8px; padding:8px 10px; cursor:pointer;';
+        row.innerHTML = `<input type="checkbox" value="${name}" class="groupMemberCheck"> ${name}`;
+        picker.appendChild(row);
+      });
+    });
+    document.getElementById('groupCreatePanel').style.display = 'flex';
+  }
+  function closeGroupCreate() {
+    document.getElementById('groupCreatePanel').style.display = 'none';
+  }
+
+  function createGroup() {
+    const name = document.getElementById('groupNameInput').value.trim();
+    if (!name) { alert('Grup adı gerekli.'); return; }
+    const checked = Array.from(document.querySelectorAll('.groupMemberCheck:checked')).map(c => c.value);
+    const members = [currentPlayerName, ...checked];
+    const gid = 'g_' + Math.random().toString(36).slice(2, 10);
+    const membersObj = {};
+    members.forEach(m => membersObj[m] = true);
+
+    const updates = {};
+    updates['groups/' + gid] = { name, createdBy: currentPlayerName, members: membersObj, createdAt: Date.now() };
+    members.forEach(m => { updates['users/' + m + '/groups/' + gid] = true; });
+    db.ref().update(updates).then(() => {
+      closeGroupCreate();
+      renderFriendsPanel();
+      openGroupChat(gid);
+    });
+  }
+
+  let currentGroupId = null;
+  let groupListenerRef = null, groupListenerCb = null;
+
+  function openGroupChat(gid) {
+    currentGroupId = gid;
+    document.getElementById('groupChatMessages').innerHTML = '';
+    document.getElementById('groupChatPanel').style.display = 'flex';
+    db.ref('groups/' + gid + '/name').get().then(s => {
+      document.getElementById('groupChatTitle').textContent = '👥 ' + (s.val() || 'Grup');
+    });
+    const ref = db.ref('groups/' + gid + '/chat');
+    if (groupListenerRef) groupListenerRef.off('child_added', groupListenerCb);
+    groupListenerCb = ref.limitToLast(50).on('child_added', snap => {
+      const msg = snap.val();
+      const box = document.getElementById('groupChatMessages');
+      const line = document.createElement('div');
+      line.innerHTML = '<b style="color:var(--pink-hot)">' + msg.from + ':</b> ' + msg.text;
+      box.appendChild(line);
+      box.scrollTop = box.scrollHeight;
+    });
+    groupListenerRef = ref;
+  }
+
+  function closeGroupChat() {
+    if (groupListenerRef) groupListenerRef.off('child_added', groupListenerCb);
+    document.getElementById('groupChatPanel').style.display = 'none';
+    currentGroupId = null;
+  }
+
+  function sendGroupChat() {
+    const input = document.getElementById('groupChatInput');
+    const text = input.value.trim();
+    if (!text || !currentGroupId) return;
+    db.ref('groups/' + currentGroupId + '/chat').push({ from: currentPlayerName, text, ts: Date.now() });
+    input.value = '';
+  }
+
+  // ================= ROZET SİSTEMİ =================
+  // Not: "ÇöpÇatan" rozeti oyunda bir "tanıştırma" özelliği olmadığı için henüz ölçülemiyor,
+  // bu yüzden kimseye verilmiyor.
+  const BADGE_INFO = {
+    'Rich.': { icon: '💰', desc: 'Popülerlik sayısı 500.000 ve üzerine ulaşınca kazanılır.' },
+    'Famous': { icon: '🌟', desc: 'Popülerlik sayısı 1.000.000 ve üzerine ulaşınca kazanılır.' },
+    'Popular.': { icon: '👑', desc: 'Tüm oyunda popülerlik sıralamasında 1. sıraya ulaşınca kazanılır.' },
+    'Celebrity': { icon: '🎬', desc: 'Popülerlik veya en sevilenler sıralamasında ilk 3\'e girince kazanılır.' },
+    'Popular Girl': { icon: '💗', desc: 'Kız oyuncular arasında popülerlik sıralamasında 1. olunca kazanılır.' },
+    'Popular Boy': { icon: '💙', desc: 'Erkek oyuncular arasında popülerlik sıralamasında 1. olunca kazanılır.' },
+    'Soft.': { icon: '🕊️', desc: '1 yıldır hesabın var ve hiç odadan atılmamışsın — nazik ve sakin biri olduğunu gösterir.' },
+    'Red Flag.': { icon: '🚩', desc: '20 kereden fazla odadan atılınca kazanılır (iyi bir şey değil!).' },
+    'Bestie!!': { icon: '🤍', desc: '10 veya daha fazla yakın arkadaşın (bondScore yüksek) olunca kazanılır.' },
+    'Friendly': { icon: '🌼', desc: '20 veya daha fazla arkadaşın olunca kazanılır.' },
+    'Sosyal Kelebek': { icon: '🦋', desc: 'Arkadaş listen tamamen dolunca (maksimum kapasite) kazanılır.' },
+    'Host': { icon: '🏠', desc: '50 veya daha fazla oda kurunca kazanılır.' },
+    'Music': { icon: '🎵', desc: 'Odalarda 50 kereden fazla müzik açınca kazanılır.' },
+    'Welcomer': { icon: '👋', desc: 'Hesabı 7 günden yeni olan 20 farklı oyuncuya arkadaşlık isteği gönderince kazanılır.' },
+    '150 LEVEL': { icon: '🏆', desc: 'Level 150\'ye (en yüksek level) ulaşınca kazanılır.' },
+    'FASHION.': { icon: '👗', desc: 'Mağazadaki elmasla alınabilen HER ürüne sahip olunca kazanılır.' },
+    'Darling.': { icon: '💍', desc: 'Aynı kişiyle 1 yıl (365 gün) veya daha uzun süre evli kalınca kazanılır.' },
+  };
+  function getBadgeInfo(name) {
+    return BADGE_INFO[name] || { icon: '🏅', desc: 'Bu rozetin açıklaması henüz eklenmedi.' };
+  }
+  function showBadgeInfo(name) {
+    const info = getBadgeInfo(name);
+    alert(info.icon + ' ' + name + '\n\n' + info.desc);
+  }
+
+  const RICH_ESIGI = 500000;
+  const FAMOUS_ESIGI = 1000000;
+  const SOFT_GUN_ESIGI = 365 * 86400000; // 1 yıl
+  const RED_FLAG_ESIGI = 20;
+  const HOST_ESIGI = 50;
+  const MUSIC_ESIGI = 50;
+  const WELCOMER_ESIGI = 20;
+  const FRIENDLY_ESIGI = 20;
+  const BESTIE_ESIGI = 10; // yakın arkadaş (bondScore>=20) sayısı
+  const LEVEL_MAX = 150;
+  const KILLER_ESIGI = 200; // "KILLER." rozeti: 200 kez katil rolüyle kazanma
+
+  function allElmasStoreItemIds() {
+    const ids = [];
+    Object.keys(STORE_ITEMS).forEach(cat => {
+      if (cat === 'hediye') return; // hediyeler kalıcı envanter değil
+      STORE_ITEMS[cat].forEach(item => {
+        if (item.source === 'elmas') ids.push({ cat, id: item.id });
+      });
+    });
+    return ids;
+  }
+
+  // Bütün oyuncuları çekip popülerlik sıralamasını (genel + cinsiyete göre) hesaplar.
+  async function computePopularityRanks(myName) {
+    const snap = await db.ref('users').get();
+    const all = snap.val() || {};
+    const list = Object.keys(all).map(n => ({ name: n, pop: all[n].popularity || 0, gender: all[n].gender }));
+    list.sort((a, b) => b.pop - a.pop);
+    const overallRank = list.findIndex(p => p.name === myName) + 1;
+    const genderList = list.filter(p => p.gender === (all[myName] || {}).gender);
+    const genderRank = genderList.findIndex(p => p.name === myName) + 1;
+
+    const likeList = Object.keys(all).map(n => ({ name: n, likes: Object.keys(all[n].likedBy || {}).length }));
+    likeList.sort((a, b) => b.likes - a.likes);
+    const likeRank = likeList.findIndex(p => p.name === myName) + 1;
+
+    return { overallRank, genderRank, totalPlayers: list.length, likeRank };
+  }
+
+  async function evaluateBadges(name) {
+    const snap = await db.ref('users/' + name).get();
+    const u = snap.val();
+    if (!u) return;
+    const have = new Set(u.badges || []);
+    const newlyEarned = [];
+    const check = (id, cond) => { if (cond && !have.has(id)) newlyEarned.push(id); };
+
+    const pop = u.popularity || 0;
+    const level = u.level || 1;
+    const friends = u.friends || {};
+    const friendCount = Object.keys(friends).length;
+    const closeFriendCount = Object.values(friends).filter(f => (f.bondScore || 0) >= YAKIN_ESIGI).length;
+    const accountAgeMs = Date.now() - (u.joinedAt || Date.now());
+    const kickedCount = u.kickedCount || 0;
+    const roomsHosted = u.roomsHosted || 0;
+    const musicOpens = u.musicOpens || 0;
+    const welcomedCount = Object.keys(u.welcomedPlayers || {}).length;
+
+    check('Rich.', pop >= RICH_ESIGI);
+    check('Famous', pop >= FAMOUS_ESIGI);
+    check('Soft.', accountAgeMs >= SOFT_GUN_ESIGI && kickedCount === 0);
+    check('Red Flag.', kickedCount >= RED_FLAG_ESIGI);
+    check('Bestie!!', closeFriendCount >= BESTIE_ESIGI);
+    check('Friendly', friendCount >= FRIENDLY_ESIGI);
+    check('Sosyal Kelebek', friendCount >= FRIEND_LIMIT_POPULAR);
+    check('Host', roomsHosted >= HOST_ESIGI);
+    check('Music', musicOpens >= MUSIC_ESIGI);
+    check('Welcomer', welcomedCount >= WELCOMER_ESIGI);
+    check('150 LEVEL', level >= LEVEL_MAX);
+
+    // Darling.: mevcut evlilik ya da geçmiş evliliklerden biri 1 yıl (365 gün) veya daha uzun sürdüyse
+    const currentMarriageDays = (u.marriage && u.marriage.spouse) ? daysBetween(u.marriage.since, Date.now()) : 0;
+    const historyMaxDays = Math.max(0, ...Object.values(u.marriageHistory || {}).map(h => h.days || 0));
+    check('Darling.', currentMarriageDays >= 365 || historyMaxDays >= 365);
+
+    // Mağazadaki elmasla alınabilen HER ürüne sahip olma (FASHION.)
+    const owned = u.inventory || {};
+    const allItems = allElmasStoreItemIds();
+    const hasAll = allItems.length > 0 && allItems.every(it => owned[it.cat] && owned[it.cat][it.id]);
+    check('FASHION.', hasAll);
+
+    // Popülerlik sıralamasına bağlı rozetler (tüm oyuncuları çekmek gerektiği için ayrı hesaplanır)
+    const ranks = await computePopularityRanks(name);
+    check('Popular.', ranks.overallRank === 1);
+    check('Celebrity', (ranks.overallRank > 0 && ranks.overallRank <= 3) || (ranks.likeRank > 0 && ranks.likeRank <= 3));
+    check('Popular Girl', u.gender === 'kiz' && ranks.genderRank === 1);
+    check('Popular Boy', u.gender === 'erkek' && ranks.genderRank === 1);
+
+    // KILLER.: 200 kez katil rolüyle oynayıp herkesi öldürüp kazanma
+    check('KILLER.', (u.killerWins || 0) >= KILLER_ESIGI);
+
+    if (newlyEarned.length > 0) {
+      const updatedBadges = [...(u.badges || []), ...newlyEarned];
+      await db.ref('users/' + name + '/badges').set(updatedBadges);
+      newlyEarned.forEach(b => alert('🏅 Yeni rozet kazandın: ' + b));
+    }
+
+    // Rozetle açılan (source:'gorev', unlockBadge'li) mağaza ürünlerini,
+    // ilgili rozet kazanılmışsa otomatik envantere ekle — böylece gerçekten takılabiliyor.
+    const allBadges = new Set([...(u.badges || []), ...newlyEarned]);
+    const invUpdates = {};
+    Object.keys(STORE_ITEMS).forEach(cat => {
+      STORE_ITEMS[cat].forEach(item => {
+        if (item.source === 'gorev' && item.unlockBadge && allBadges.has(item.unlockBadge)) {
+          const already = u.inventory && u.inventory[cat] && u.inventory[cat][item.id];
+          if (!already) invUpdates['inventory/' + cat + '/' + item.id] = true;
+        }
+      });
+    });
+    if (Object.keys(invUpdates).length > 0) {
+      await db.ref('users/' + name).update(invUpdates);
+    }
+  }
+
+
+  // Not: hediye sistemi henüz kurulmadığı için giftsGiven/giftsReceived şimdilik hep 0 —
+  // hediye sistemi (Faz 2) eklenince bu görevler otomatik ilerlemeye başlayacak.
+  const MISSIONS = [
+    { id: 'play1', label: '1 oyun oyna', reward: 10, rewardLabel: '10 💎', target: 1, progress: u => u.gamesPlayed || 0 },
+    { id: 'win3', label: '3 oyun kazan', reward: 30, rewardLabel: '30 💎', target: 3, progress: u => u.wins || 0 },
+    { id: 'gift1', label: 'Bir kişiye hediye gönder', reward: 20, rewardLabel: '20 💎', target: 1, progress: u => u.giftsGiven || 0 },
+    { id: 'gift100', label: '100 hediye al', reward: 0, rewardLabel: 'Hediye Çerçevesi 🖼️', target: 100, progress: u => u.giftsReceived || 0 },
+    { id: 'pop500k', label: '500.000 popülerliğe ulaş', reward: 50000, rewardLabel: '50.000 💎', target: 500000, progress: u => u.popularity || 0 },
+    { id: 'darling', label: '"Darling." rozetini kazan', reward: 3000, rewardLabel: '3.000 💎', target: 1, progress: u => (u.badges || []).includes('Darling.') ? 1 : 0 },
+  ];
+
+  function openMissionsPanel() {
+    db.ref('users/' + currentPlayerName).get().then(snap => {
+      const u = snap.val() || {};
+      const claimed = u.missionsClaimed || {};
+      const list = document.getElementById('missionsList');
+      list.innerHTML = '';
+      MISSIONS.forEach(m => {
+        const cur = Math.min(m.progress(u), m.target);
+        const done = cur >= m.target;
+        const alreadyClaimed = !!claimed[m.id];
+        const row = document.createElement('div');
+        row.style.cssText = 'background:#150F12; border:1px solid rgba(232,140,175,0.2); border-radius:12px; padding:12px;';
+        row.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <div style="font-weight:700; font-size:0.88rem;">${m.label}</div>
+            <div style="color:var(--pink-hot); font-weight:800; font-size:0.8rem;">${m.rewardLabel}</div>
+          </div>
+          <div style="background:#0F1811; border-radius:6px; height:8px; overflow:hidden; margin-bottom:6px;">
+            <div style="background:${done ? '#7FBF3F' : 'var(--pink-hot)'}; height:100%; width:${(cur / m.target * 100)}%;"></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="color:var(--muted); font-size:0.72rem;">${formatNum(cur)} / ${formatNum(m.target)}</div>
+            ${alreadyClaimed
+              ? '<div style="color:#7FBF3F; font-size:0.75rem; font-weight:700;">Alındı ✓</div>'
+              : done
+                ? `<button onclick="claimMission('${m.id}')" style="padding:5px 12px; border-radius:8px; border:none; background:linear-gradient(135deg,#7FBF3F,#4F8A22); color:#0B120D; font-weight:800; font-size:0.75rem; cursor:pointer;">Al</button>`
+                : '<div style="color:var(--muted); font-size:0.72rem;">devam ediyor</div>'
+            }
+          </div>`;
+        list.appendChild(row);
+      });
+    });
+    document.getElementById('missionsPanel').style.display = 'flex';
+  }
+
+  function closeMissionsPanel() {
+    document.getElementById('missionsPanel').style.display = 'none';
+  }
+
+  function claimMission(id) {
+    const mission = MISSIONS.find(m => m.id === id);
+    const userRef = db.ref('users/' + currentPlayerName);
+    userRef.transaction(u => {
+      if (!u) return u;
+      u.missionsClaimed = u.missionsClaimed || {};
+      if (u.missionsClaimed[id]) return u; // zaten alınmış
+      const cur = mission.progress(u);
+      if (cur < mission.target) return u; // henüz tamamlanmamış
+      u.missionsClaimed[id] = true;
+      if (mission.reward > 0) u.diamonds = (u.diamonds || 0) + mission.reward;
+      return u;
+    }).then(() => openMissionsPanel());
+  }
+
+  function openEditProfile() {
+    document.getElementById('editNameInput').value = currentPlayerName;
+    const currentBio = document.getElementById('profileBioDisplay').textContent;
+    document.getElementById('editBioInput').value = currentBio === 'Not bio yet' ? '' : currentBio;
+    document.getElementById('editProfileMsg').textContent = '';
+    document.getElementById('editProfilePanel').style.display = 'flex';
+  }
+
+  function closeEditProfile() {
+    document.getElementById('editProfilePanel').style.display = 'none';
+  }
+
+  function saveEditProfile() {
+    const newName = document.getElementById('editNameInput').value.trim();
+    const newBio = document.getElementById('editBioInput').value.trim() || 'Not bio yet';
+
+    db.ref('users/' + currentPlayerName + '/bio').set(newBio).then(() => {
+      document.getElementById('profileBioDisplay').textContent = newBio;
+
+      if (newName && newName !== currentPlayerName) {
+        // Not: gerçek hesap sisteminde isim değişince oda/arkadaş/geçmiş verileri de taşınmalı.
+        // Şimdilik sadece görünen ismi ve bio'yu güncelliyoruz, altyapı Faz 2'de tamamlanacak.
+        document.getElementById('profileName').textContent = newName;
+        document.getElementById('editProfileMsg').textContent = 'Bio kaydedildi. İsim değişikliği tam altyapı hazır olunca kalıcı olacak.';
+      } else {
+        document.getElementById('editProfileMsg').textContent = 'Kaydedildi ✓';
+      }
+      setTimeout(() => { closeEditProfile(); }, 1200);
+    });
+  }
+
+  // ---------- GERÇEK oda kur / katıl / sohbet (Firebase Realtime Database) ----------
+  function createRoom() {
+    const code = Math.random().toString(36).slice(2, 7).toUpperCase();
+    const roomRef = db.ref('rooms/' + code);
+    roomRef.set({
+      createdAt: Date.now(),
+      host: currentPlayerName,
+      players: { [currentPlayerName]: { joinedAt: Date.now(), ready: false } },
+      chat: {}
+    }).then(() => {
+      db.ref('users/' + currentPlayerName + '/roomsHosted').transaction(v => (v || 0) + 1);
+      enterRoom(code);
+    }).catch(err => {
+      alert('Oda kurulamadı: ' + err.message);
+    });
+  }
+
+  function joinRoomPrompt() {
+    const code = prompt('Oda kodunu gir:');
+    if (!code) return;
+    const upper = code.toUpperCase().trim();
+    const roomRef = db.ref('rooms/' + upper);
+    roomRef.get().then(snapshot => {
+      if (!snapshot.exists()) {
+        alert('Bu kodda bir oda bulunamadı.');
+        return;
+      }
+      const players = snapshot.val().players || {};
+      if (Object.keys(players).length >= 10 && !players[currentPlayerName]) {
+        alert('Bu oda dolu (en fazla 10 kişi).');
+        return;
+      }
+      roomRef.child('players/' + currentPlayerName).set({ joinedAt: Date.now(), ready: false }).then(() => {
+        enterRoom(upper);
+      });
+    }).catch(err => alert('Hata: ' + err.message));
+  }
+
+  let currentRoomHost = null;
+
+  function enterRoom(code) {
+    currentRoomCode = code;
+    currentRoomHost = null;
+    currentChatChannel = null;
+    document.getElementById('lobbyScreen').classList.remove('active');
+    document.getElementById('roomScreen').classList.add('active');
+    document.getElementById('roomCodeBadge').textContent = code;
+    document.getElementById('roomChatMessages').innerHTML = '';
+    document.getElementById('roomLobbyPart').style.display = 'block';
+    document.getElementById('gameArea').style.display = 'none';
+    document.getElementById('gameEndPanel').style.display = 'none';
+    stopMap();
+
+    const hostRef = db.ref('rooms/' + code + '/host');
+    const hostListener = hostRef.on('value', snap => {
+      currentRoomHost = snap.val();
+      renderMusicPanelControls();
+    });
+    roomListeners.push({ ref: hostRef, event: 'value', cb: hostListener });
+
+    const playersRef = db.ref('rooms/' + code + '/players');
+    const playersListener = playersRef.on('value', snapshot => {
+      const players = snapshot.val() || {};
+      renderRoomPlayers(players);
+      checkAndMaybeStartGame(players);
+    });
+    roomListeners.push({ ref: playersRef, event: 'value', cb: playersListener });
+
+    setActiveChatChannel('living');
+
+    const musicRef = db.ref('rooms/' + code + '/music');
+    const musicListener = musicRef.on('value', snap => {
+      applyRoomMusicState(snap.val() || {});
+    });
+    roomListeners.push({ ref: musicRef, event: 'value', cb: musicListener });
+
+    listenGameState(code);
+  }
+
+  // Oda içindeki oyuncuları küçük profil fotoğrafı/avatarı + isim + host rozetiyle çizer.
+  function renderRoomPlayers(players) {
+    const names = Object.keys(players);
+    Promise.all(names.map(name => db.ref('users/' + name).get())).then(snaps => {
+      const box = document.getElementById('roomPlayers');
+      box.innerHTML = '';
+      names.forEach((name, i) => {
+        const data = snaps[i].val() || {};
+        const ready = !!players[name].ready;
+        const isHost = name === currentRoomHost;
+        const isMe = name === currentPlayerName;
+
+        const chip = document.createElement('div');
+        chip.style.cssText = 'display:flex; align-items:center; gap:6px; background:' + (ready ? 'rgba(127,191,63,0.15)' : 'rgba(217,67,107,0.15)') + '; border:1px solid ' + (ready ? '#7FBF3F' : 'var(--pink-hot)') + '; border-radius:20px; padding:4px 12px 4px 4px; font-size:0.85rem; font-weight:700; color:' + (ready ? '#7FBF3F' : 'var(--pink)') + ';';
+
+        const avatar = document.createElement('div');
+        avatar.style.cssText = 'width:26px; height:26px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:0.9rem; overflow:hidden;';
+        if (data.photoUrl) {
+          avatar.style.background = `url('${data.photoUrl}') center/cover`;
+        } else if (data.avatar && data.avatar.snapshotUrl) {
+          avatar.style.background = `url('${data.avatar.snapshotUrl}') center/contain no-repeat`;
+        } else if (data.avatar) {
+          const snap = renderAvatarSnapshot(data.avatar, 64);
+          if (snap) avatar.style.background = `url('${snap}') center/contain no-repeat`;
+          else { avatar.style.background = data.gender === 'erkek' ? 'linear-gradient(135deg,#5B6B5E,#2E3A30)' : 'linear-gradient(135deg, var(--pink), var(--pink-hot))'; avatar.textContent = '🌸'; }
+        } else {
+          avatar.style.background = data.gender === 'erkek' ? 'linear-gradient(135deg,#5B6B5E,#2E3A30)' : 'linear-gradient(135deg, var(--pink), var(--pink-hot))';
+          avatar.textContent = '🌸';
+        }
+        chip.appendChild(avatar);
+
+        const label = document.createElement('span');
+        label.textContent = name + (ready ? ' ✓' : '');
+        chip.appendChild(label);
+
+        if (isHost) {
+          const badge = document.createElement('span');
+          badge.textContent = '🏠';
+          badge.title = 'Host';
+          chip.appendChild(badge);
+        }
+
+        if (currentRoomHost === currentPlayerName && !isMe) {
+          const kickBtn = document.createElement('span');
+          kickBtn.textContent = '✕';
+          kickBtn.title = 'Odadan at';
+          kickBtn.style.cssText = 'cursor:pointer; color:#C81D4B; font-weight:900; margin-left:2px;';
+          kickBtn.onclick = () => kickPlayer(name);
+          chip.appendChild(kickBtn);
+        }
+
+        box.appendChild(chip);
+      });
+    });
+  }
+
+  function kickPlayer(name) {
+    if (!confirm(name + ' odadan atılsın mı?')) return;
+    db.ref('rooms/' + currentRoomCode + '/players/' + name).remove();
+    db.ref('users/' + name + '/kickedCount').transaction(v => (v || 0) + 1);
+  }
+
+  // ---------- ODA MÜZİĞİ ----------
+  function toggleMusicPanel() {
+    const panel = document.getElementById('musicPanel');
+    const opening = panel.style.display !== 'flex';
+    panel.style.display = opening ? 'flex' : 'none';
+    if (opening) renderMusicPanelControls();
+  }
+
+  function renderMusicPanelControls() {
+    const isHost = currentRoomHost === currentPlayerName;
+    document.getElementById('musicHostControls').style.display = isHost ? 'block' : 'none';
+    document.getElementById('musicGuestInfo').style.display = isHost ? 'none' : 'block';
+  }
+
+  function isSafeMusicUrl(str) {
+    let parsed;
+    try { parsed = new URL(str); } catch (e) { return false; }
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  }
+
+  function setRoomMusic() {
+    const url = document.getElementById('musicUrlInput').value.trim();
+    if (!url) return;
+    if (!isSafeMusicUrl(url)) {
+      alert('Geçersiz link. Sadece http(s):// ile başlayan gerçek bir mp3 adresi kabul edilir.');
+      return;
+    }
+    db.ref('rooms/' + currentRoomCode + '/music').set({ url, playing: true });
+    db.ref('users/' + currentPlayerName + '/musicOpens').transaction(v => (v || 0) + 1);
+  }
+
+  function toggleRoomMusicPlay() {
+    const musicRef = db.ref('rooms/' + currentRoomCode + '/music');
+    musicRef.transaction(m => {
+      if (!m || !m.url) return m;
+      m.playing = !m.playing;
+      return m;
+    }).then(result => {
+      if (result.committed && result.snapshot.val() && result.snapshot.val().playing && currentRoomHost === currentPlayerName) {
+        db.ref('users/' + currentPlayerName + '/musicOpens').transaction(v => (v || 0) + 1);
+      }
+    });
+  }
+
+  function applyRoomMusicState(music) {
+    const player = document.getElementById('roomAudioPlayer');
+    const nowPlaying = document.getElementById('musicNowPlaying');
+    const playPauseBtn = document.getElementById('musicPlayPauseBtn');
+    if (!music || !music.url) {
+      nowPlaying.textContent = 'Henüz müzik eklenmedi.';
+      return;
+    }
+    if (player.src !== music.url) player.src = music.url;
+    if (music.playing) {
+      player.play().catch(() => {});
+      nowPlaying.textContent = '🎶 Çalıyor...';
+      if (playPauseBtn) playPauseBtn.textContent = '⏸️ Durdur';
+    } else {
+      player.pause();
+      nowPlaying.textContent = '⏸️ Durduruldu';
+      if (playPauseBtn) playPauseBtn.textContent = '▶️ Çal';
+    }
+  }
+
+  // ---------- ODA SOHBETİ (canlılar / hayaletler ayrı kanal) ----------
+  let currentChatChannel = null;
+  let currentChatListenerRef = null;
+  let currentChatListenerCb = null;
+
+  function setActiveChatChannel(mode) {
+    const wanted = mode === 'ghost' ? 'ghost' : 'living';
+    if (wanted === currentChatChannel) return; // zaten bu kanaldayız, tekrar bağlanma
+    if (currentChatListenerRef) currentChatListenerRef.off('child_added', currentChatListenerCb);
+
+    currentChatChannel = wanted;
+    document.getElementById('roomChatMessages').innerHTML = '';
+    const label = document.getElementById('roomChatLabel');
+    if (wanted === 'ghost') {
+      label.style.display = 'block';
+      label.textContent = '👻 Hayalet Sohbeti — sadece ölüler görür';
+    } else {
+      label.style.display = 'none';
+    }
+
+    const path = wanted === 'ghost' ? '/ghostChat' : '/chat';
+    const ref = db.ref('rooms/' + currentRoomCode + path);
+    const cb = ref.limitToLast(50).on('child_added', snapshot => {
+      const msg = snapshot.val();
+      const box = document.getElementById('roomChatMessages');
+      const line = document.createElement('div');
+      const nameEl = document.createElement('b');
+      nameEl.style.color = 'var(--pink-hot)';
+      nameEl.textContent = msg.name + ': ';
+      line.appendChild(nameEl);
+      line.appendChild(document.createTextNode(msg.text));
+      box.appendChild(line);
+      box.scrollTop = box.scrollHeight;
+    });
+    currentChatListenerRef = ref;
+    currentChatListenerCb = cb;
+  }
+
+  function sendRoomChat() {
+    const input = document.getElementById('roomChatInput');
+    const text = input.value.trim();
+    if (!text || !currentRoomCode) return;
+    const path = currentChatChannel === 'ghost' ? '/ghostChat' : '/chat';
+    db.ref('rooms/' + currentRoomCode + path).push({
+      name: currentPlayerName,
+      text: text,
+      ts: Date.now()
+    });
+    input.value = '';
+  }
+
+  function leaveRoom() {
+    if (currentRoomCode && currentPlayerName) {
+      db.ref('rooms/' + currentRoomCode + '/players/' + currentPlayerName).remove();
+      // host odadan ayrılıyorsa host'u kalan ilk oyuncuya devret
+      if (currentRoomHost === currentPlayerName) {
+        db.ref('rooms/' + currentRoomCode + '/players').get().then(snap => {
+          const remaining = Object.keys(snap.val() || {});
+          if (remaining.length > 0) db.ref('rooms/' + currentRoomCode + '/host').set(remaining[0]);
+        });
+      }
+    }
+    const player = document.getElementById('roomAudioPlayer');
+    if (player) { player.pause(); player.src = ''; }
+    document.getElementById('musicPanel').style.display = 'none';
+    if (currentChatListenerRef) { currentChatListenerRef.off('child_added', currentChatListenerCb); currentChatListenerRef = null; currentChatChannel = null; }
+    if (discussionTimerInterval) { clearInterval(discussionTimerInterval); discussionTimerInterval = null; }
+    roomListeners.forEach(l => l.ref.off(l.event, l.cb));
+    roomListeners = [];
+    currentRoomCode = null;
+    currentRoomHost = null;
+    document.getElementById('roomScreen').classList.remove('active');
+    document.getElementById('lobbyScreen').classList.add('active');
+  }
+
+  // ================= OYUN MANTIĞI (Katil / Şerif / Masum / Kurtarıcı) =================
+
+  function toggleReady() {
+    const ref = db.ref('rooms/' + currentRoomCode + '/players/' + currentPlayerName + '/ready');
+    ref.get().then(s => ref.set(!s.val()));
+  }
+
+  function checkAndMaybeStartGame(players) {
+    const names = Object.keys(players);
+    const readyCount = names.filter(n => players[n].ready).length;
+    document.getElementById('readyCountText').textContent =
+      'Hazır: ' + readyCount + ' / ' + (names.length > 4 ? '4 (kalabalık oda)' : '2');
+
+    const threshold = names.length > 4 ? 4 : 2;
+    if (readyCount >= threshold && names.length >= 2) {
+      // Yalnızca bir kez tetiklensin diye transaction kullanıyoruz
+      db.ref('rooms/' + currentRoomCode + '/game').transaction(current => {
+        if (current && current.phase === 'playing') return; // zaten başlamış, dokunma
+        return buildNewGameState(names);
+      });
+    }
+  }
+
+  function buildNewGameState(names) {
+    const shuffled = [...names].sort(() => Math.random() - 0.5);
+    const n = shuffled.length;
+    let katilCount = (n >= 6 && Math.random() < 0.5) ? 2 : 1;
+    let serifCount = (n >= 6 && Math.random() < 0.5) ? 2 : 1;
+    while (katilCount + serifCount > n - 1 && serifCount > 1) serifCount--;
+    while (katilCount + serifCount > n - 1 && katilCount > 1) katilCount--;
+
+    const roles = {};
+    let i = 0;
+    for (let k = 0; k < katilCount; k++) roles[shuffled[i++]] = 'katil';
+    for (let k = 0; k < serifCount; k++) roles[shuffled[i++]] = 'serif';
+    while (i < n) roles[shuffled[i++]] = 'masum';
+
+    const alive = {}; const armed = {};
+    names.forEach(name => {
+      alive[name] = true;
+      armed[name] = roles[name] === 'serif';
+    });
+
+    return {
+      phase: 'playing',
+      roles, alive, armed,
+      weaponDropped: false,
+      reportedBodies: {},
+      discussion: null,
+      winner: null,
+      winnerName: null,
+      startedAt: Date.now()
+    };
+  }
+
+  function killTarget(target) {
+    if (!isNearMe(target)) { alert(target + ' artık yakınında değil.'); renderActionArea(latestGameForActions); return; }
+    const gameRef = db.ref('rooms/' + currentRoomCode + '/game');
+    gameRef.get().then(snap => {
+      const game = snap.val();
+      if (!game || game.phase !== 'playing') return;
+      const updates = {};
+      updates['alive/' + target] = false;
+      if (game.armed && game.armed[target]) {
+        updates['armed/' + target] = false;
+        updates['weaponDropped'] = true;
+      }
+      gameRef.update(updates).then(() => checkWinConditions());
+    });
+  }
+
+  function shootTarget(target) {
+    if (!isNearMe(target)) { alert(target + ' artık yakınında değil.'); renderActionArea(latestGameForActions); return; }
+    const gameRef = db.ref('rooms/' + currentRoomCode + '/game');
+    gameRef.get().then(snap => {
+      const game = snap.val();
+      if (!game || game.phase !== 'playing') return;
+      const updates = {};
+      updates['alive/' + target] = false;
+      gameRef.update(updates).then(() => {
+        if (game.roles[target] === 'katil') {
+          checkWinConditions(currentPlayerName);
+        } else {
+          checkWinConditions();
+        }
+      });
+    });
+  }
+
+  function pickUpWeapon() {
+    const gameRef = db.ref('rooms/' + currentRoomCode + '/game');
+    gameRef.transaction(game => {
+      if (!game || !game.weaponDropped) return game;
+      if (!game.alive[currentPlayerName]) return game;
+      game.weaponDropped = false;
+      game.armed = game.armed || {};
+      game.armed[currentPlayerName] = true;
+      return game;
+    });
+  }
+
+  // ÖNEMLİ GÜVENLİK/İZİN DÜZELTMESİ: Eskiden tek bir istemci checkWinConditions() içinde
+  // ODADAKİ HERKESİN adına users/{isim} yazmaya çalışıyordu. Firebase kuralları bir kullanıcının
+  // sadece KENDİ verisini yazmasına izin veriyor, bu yüzden diğer oyuncular için olan yazmalar
+  // sessizce "Permission denied" ile reddediliyordu. Artık her oyuncunun kendi cihazı, oyun
+  // bittiğinde SADECE KENDİ istatistiğini yazıyor (showGameEnd her istemcide ayrı ayrı çalışır).
+  let statsAppliedForGameKey = null;
+  function applyOwnStatsAfterGame(game) {
+    if (!game || !game.roles || !game.roles[currentPlayerName]) return;
+    const gameKey = currentRoomCode + '_' + (game.startedAt || 0);
+    if (statsAppliedForGameKey === gameKey) return;
+    statsAppliedForGameKey = gameKey;
+
+    const myRole = game.roles[currentPlayerName];
+    const winnerSide = game.winner;
+    const userRef = db.ref('users/' + currentPlayerName);
+    userRef.transaction(u => {
+      if (!u) u = { bio: 'Not bio yet', level: 1, wins: 0, popularity: 0, diamonds: 0, gamesPlayed: 0 };
+      u.gamesPlayed = (u.gamesPlayed || 0) + 1;
+      const won = (winnerSide === 'katil' && myRole === 'katil') ||
+                  (winnerSide === 'masum' && myRole !== 'katil');
+      if (won) u.wins = (u.wins || 0) + 1;
+      if (winnerSide === 'katil' && myRole === 'katil') u.killerWins = (u.killerWins || 0) + 1;
+      return u;
+    });
+
+    // Arkadaşlık bağı: sadece KENDİ tarafımı güncelliyorum (users/{ben}/friends/{diğeri}),
+    // diğer oyuncu da kendi cihazında aynısını kendi tarafı için yapıyor.
+    const others = Object.keys(game.roles).filter(n => n !== currentPlayerName);
+    others.forEach(other => {
+      db.ref('users/' + currentPlayerName + '/friends/' + other).get().then(snap => {
+        if (snap.exists()) {
+          db.ref('users/' + currentPlayerName + '/friends/' + other + '/bondScore').transaction(v => (v || 0) + 3);
+        }
+      });
+    });
+  }
+
+  function checkWinConditions(killerOfKatilName) {
+    const gameRef = db.ref('rooms/' + currentRoomCode + '/game');
+    gameRef.get().then(snap => {
+      const game = snap.val();
+      if (!game || game.phase !== 'playing') return;
+      const names = Object.keys(game.roles);
+      const aliveKatil = names.filter(n => game.roles[n] === 'katil' && game.alive[n]);
+      const aliveOthers = names.filter(n => game.roles[n] !== 'katil' && game.alive[n]);
+
+      if (aliveKatil.length === 0) {
+        gameRef.update({ phase: 'ended', winner: 'masum', winnerName: killerOfKatilName || null });
+      } else if (aliveOthers.length === 0) {
+        gameRef.update({ phase: 'ended', winner: 'katil', winnerName: aliveKatil[0] });
+      }
+    });
+  }
+
+  // ---------- İHBAR / TARTIŞMA / OYLAMA ----------
+  const DISCUSSION_DURATION_MS = 60 * 1000; // 1 dakika
+
+  function reportBody(name) {
+    const gameRef = db.ref('rooms/' + currentRoomCode + '/game');
+    gameRef.transaction(game => {
+      if (!game || game.phase !== 'playing') return game;
+      if (game.alive[name]) return game; // yaşıyorsa ihbar edilecek bir şey yok
+      if (game.reportedBodies && game.reportedBodies[name]) return game; // zaten ihbar edilmiş
+      game.reportedBodies = game.reportedBodies || {};
+      game.reportedBodies[name] = true;
+      game.phase = 'discussion';
+      game.discussion = {
+        reportedBody: name,
+        reportedBy: currentPlayerName,
+        startedAt: Date.now(),
+        endsAt: Date.now() + DISCUSSION_DURATION_MS,
+        votes: {}
+      };
+      return game;
+    });
+  }
+
+  function castVote(target) {
+    const gameRef = db.ref('rooms/' + currentRoomCode + '/game');
+    gameRef.transaction(game => {
+      if (!game || game.phase !== 'discussion' || !game.discussion) return game;
+      if (!game.alive[currentPlayerName]) return game; // hayaletler oy kullanamaz
+      game.discussion.votes = game.discussion.votes || {};
+      game.discussion.votes[currentPlayerName] = target; // target bir isim ya da 'skip' olabilir
+      return game;
+    }).then(() => maybeResolveDiscussion());
+  }
+
+  // Herkes oy kullandıysa ya da süre dolduysa tartışmayı sonuçlandırır.
+  // Birden fazla istemci aynı anda çağırsa da transaction sayesinde sadece biri gerçekten uygular.
+  function maybeResolveDiscussion() {
+    const gameRef = db.ref('rooms/' + currentRoomCode + '/game');
+    gameRef.transaction(game => {
+      if (!game || game.phase !== 'discussion' || !game.discussion) return game;
+      const aliveNames = Object.keys(game.alive).filter(n => game.alive[n]);
+      const votes = game.discussion.votes || {};
+      const votedCount = aliveNames.filter(n => votes[n] !== undefined).length;
+      const timeUp = Date.now() >= game.discussion.endsAt;
+      if (!timeUp && votedCount < aliveNames.length) return game; // henüz sıra gelmedi
+
+      // Oyları say (skip / undefined sayılmaz)
+      const tally = {};
+      Object.values(votes).forEach(v => {
+        if (!v || v === 'skip') return;
+        tally[v] = (tally[v] || 0) + 1;
+      });
+      let ejected = null;
+      let maxVotes = 0;
+      let tie = false;
+      Object.keys(tally).forEach(name => {
+        if (tally[name] > maxVotes) { maxVotes = tally[name]; ejected = name; tie = false; }
+        else if (tally[name] === maxVotes) { tie = true; }
+      });
+      if (tie) ejected = null;
+
+      game.lastEjection = { name: ejected, votes: tally, resolvedAt: Date.now() };
+      if (ejected) game.alive[ejected] = false;
+      game.phase = 'playing';
+      game.discussion = null;
+      return game;
+    }).then(result => {
+      if (result.committed) checkWinConditions();
+    });
+  }
+
+
+
+
+  function backToRoomLobby() {
+    document.getElementById('gameEndPanel').style.display = 'none';
+    const gameRef = db.ref('rooms/' + currentRoomCode + '/game');
+    gameRef.set(null);
+    // herkesin hazır durumunu sıfırla
+    const playersRef = db.ref('rooms/' + currentRoomCode + '/players');
+    playersRef.get().then(snap => {
+      const players = snap.val() || {};
+      const updates = {};
+      Object.keys(players).forEach(n => { updates[n + '/ready'] = false; });
+      playersRef.update(updates);
+    });
+    document.getElementById('roomLobbyPart').style.display = 'block';
+    document.getElementById('gameArea').style.display = 'none';
+    stopMap();
+  }
+
+  function renderRoleCard(game) {
+    const myRole = game.roles[currentPlayerName];
+    const isAlive = game.alive[currentPlayerName];
+    const isArmed = game.armed && game.armed[currentPlayerName];
+    const roleInfo = {
+      katil: { label: 'Katil 🔪', color: '#C81D4B', desc: 'Bahçedekileri fark ettirmeden öldür.' },
+      serif: { label: 'Şerif 🔫', color: '#D4AF37', desc: 'Elindeki silahla katili bul ve vur.' },
+      masum: { label: 'Masum 🌿', color: 'var(--pink)', desc: 'Dikkatli ol, kimin katil olduğunu çöz.' }
+    };
+    const info = roleInfo[myRole];
+    const card = document.getElementById('roleCard');
+    card.style.background = `linear-gradient(135deg, ${info.color}22, #150F12)`;
+    card.style.border = `1px solid ${info.color}55`;
+    let extra = '';
+    if (!isAlive) {
+      extra = '<div style="margin-top:6px; color:#8FA391; font-weight:700; font-size:0.85rem;">👻 Hayaletsin — kimse seni göremiyor, sadece izliyorsun.</div>';
+    } else if (myRole === 'masum' && isArmed) {
+      extra = '<div style="margin-top:6px; color:#D4AF37; font-weight:700; font-size:0.85rem;">🔫 Yerden silahı aldın, artık ateş edebilirsin!</div>';
+    } else if (game.weaponDropped && isAlive && myRole !== 'katil' && !isArmed) {
+      extra = '<button onclick="pickUpWeapon()" style="margin-top:8px; padding:9px 18px; border-radius:10px; border:none; font-weight:800; background:linear-gradient(135deg,#D4AF37,#8A6F1F); color:#0B120D; cursor:pointer;">🔫 Silahı Yerden Al</button>';
+    }
+    card.innerHTML = `<div style="font-size:1.3rem; font-weight:800; color:${info.color};">${info.label}</div>
+      <div style="font-size:0.78rem; color:var(--muted); margin-top:4px;">${info.desc}</div>` + extra;
+  }
+
+  function renderReportArea(game) {
+    const area = document.getElementById('reportArea');
+    area.innerHTML = '';
+    if (!game.alive[currentPlayerName]) return; // hayaletler ihbar edemez
+
+    const unreported = Object.keys(game.alive).filter(n => !game.alive[n] && !(game.reportedBodies && game.reportedBodies[n]));
+    if (unreported.length === 0) return;
+
+    const label = document.createElement('div');
+    label.style.cssText = 'color:#C81D4B; font-size:0.72rem; text-transform:uppercase; letter-spacing:1px; margin:8px 0 6px;';
+    label.textContent = '🚨 Bahçede ceset var';
+    area.appendChild(label);
+
+    unreported.forEach(name => {
+      const btn = document.createElement('button');
+      btn.textContent = '🚨 ' + name + ' cesedini ihbar et';
+      btn.style.cssText = 'width:100%; margin-top:6px; padding:10px; border-radius:8px; border:1px solid #C81D4B; background:rgba(200,29,75,0.15); color:#fff; font-weight:700; cursor:pointer; font-size:0.82rem;';
+      btn.onclick = () => reportBody(name);
+      area.appendChild(btn);
+    });
+  }
+
+  let discussionTimerInterval = null;
+
+  function renderDiscussionPanel(game) {
+    const panel = document.getElementById('discussionPanel');
+    const d = game.discussion;
+    if (!d) { panel.style.display = 'none'; if (discussionTimerInterval) { clearInterval(discussionTimerInterval); discussionTimerInterval = null; } return; }
+
+    panel.style.display = 'flex';
+    const isAlive = game.alive[currentPlayerName];
+    const myVote = (d.votes || {})[currentPlayerName];
+
+    const renderTick = () => {
+      const secondsLeft = Math.max(0, Math.ceil((d.endsAt - Date.now()) / 1000));
+      let html = `
+        <div style="font-weight:800; color:#C81D4B; text-align:center;">🚨 ${d.reportedBy}, ${d.reportedBody}'in cesedini buldu!</div>
+        <div style="color:var(--muted); font-size:0.85rem; text-align:center;">Tartışma bitmesine: ${secondsLeft} sn</div>`;
+      if (!isAlive) {
+        html += `<div style="color:#8FA391; font-size:0.8rem; text-align:center; margin-top:6px;">👻 Hayalet olarak sadece izliyorsun.</div>`;
+      } else {
+        html += `<div style="color:var(--muted); font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; margin-top:8px;">Kimi bahçeden atalım?</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%; margin-top:6px;">`;
+        Object.keys(game.alive).filter(n => game.alive[n]).forEach(name => {
+          const selected = myVote === name;
+          html += `<button onclick="castVote('${name}')" style="padding:9px; border-radius:8px; border:1px solid ${selected ? '#C81D4B' : 'var(--pink-hot)'}; background:${selected ? '#C81D4B' : '#150F12'}; color:${selected ? '#fff' : 'var(--text)'}; font-weight:700; cursor:pointer; font-size:0.82rem;">${name}</button>`;
+        });
+        html += `</div>
+          <button onclick="castVote('skip')" style="margin-top:8px; padding:8px 16px; border-radius:8px; border:1px solid var(--muted); background:${myVote === 'skip' ? 'rgba(255,255,255,0.1)' : 'transparent'}; color:var(--muted); font-weight:700; cursor:pointer; font-size:0.78rem;">Oy Kullanma</button>`;
+      }
+      panel.innerHTML = html;
+    };
+    renderTick();
+
+    if (discussionTimerInterval) clearInterval(discussionTimerInterval);
+    discussionTimerInterval = setInterval(() => {
+      renderTick();
+      maybeResolveDiscussion();
+    }, 1000);
+  }
+
+  function renderActionArea(game) {
+    const area = document.getElementById('actionArea');
+    area.innerHTML = '';
+    const myRole = game.roles[currentPlayerName];
+    const isAlive = game.alive[currentPlayerName];
+    const isArmed = game.armed && game.armed[currentPlayerName];
+    if (!isAlive) return;
+
+    const canKill = myRole === 'katil';
+    const canShoot = isArmed;
+    if (!canKill && !canShoot) return;
+
+    const label = document.createElement('div');
+    label.style.cssText = 'color:var(--muted); font-size:0.72rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;';
+    label.textContent = canKill ? 'Kimi öldürüyorsun?' : 'Kime ateş ediyorsun?';
+    area.appendChild(label);
+
+    // SADECE haritada gerçekten yakınında olan (aynı bölgede, PROXIMITY_RANGE içinde) oyuncular
+    // listeleniyor — artık uzaktaki birini "öldüremiyor/vuramıyorsun".
+    const nearbyTargets = Object.keys(game.alive).filter(name =>
+      name !== currentPlayerName && game.alive[name] && isNearMe(name)
+    );
+
+    if (nearbyTargets.length === 0) {
+      const hint = document.createElement('div');
+      hint.style.cssText = 'color:var(--muted); font-size:0.78rem; text-align:center; padding:8px;';
+      hint.textContent = canKill ? 'Yakınında kimse yok — haritada dolaş.' : 'Yakınında kimse yok — haritada dolaş.';
+      area.appendChild(hint);
+      return;
+    }
+
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:8px;';
+    nearbyTargets.forEach(name => {
+      const btn = document.createElement('button');
+      btn.textContent = name;
+      btn.style.cssText = 'padding:9px; border-radius:8px; border:1px solid var(--pink-hot); background:#150F12; color:var(--text); font-weight:700; cursor:pointer; font-size:0.85rem;';
+      btn.onclick = () => canKill ? killTarget(name) : shootTarget(name);
+      grid.appendChild(btn);
+    });
+    area.appendChild(grid);
+  }
+
+  function showGameEnd(game) {
+    applyOwnStatsAfterGame(game);
+    const panel = document.getElementById('gameEndPanel');
+    const title = document.getElementById('gameEndTitle');
+    const nameEl = document.getElementById('gameEndName');
+    const avatarEl = document.getElementById('gameEndAvatar');
+
+    if (game.winner === 'masum') {
+      title.textContent = 'VICTORY!';
+      title.style.color = 'var(--pink)';
+      nameEl.textContent = game.winnerName ? game.winnerName + ' katili avladı!' : 'Bahçe kurtuldu!';
+      avatarEl.style.background = 'linear-gradient(135deg, var(--pink), var(--pink-hot))';
+    } else {
+      title.textContent = 'Katil Kazandı';
+      title.style.color = '#C81D4B';
+      nameEl.textContent = (game.winnerName || 'Katil') + ' bahçeyi ele geçirdi...';
+      avatarEl.style.background = 'linear-gradient(135deg, #C81D4B, #3A0A14)';
+    }
+    panel.style.display = 'flex';
+  }
+
+  // ---------- AYARLAR (gerçek işlevsel panel) ----------
+  function openSettingsPanel() {
+    db.ref('users/' + currentPlayerName + '/lang').get().then(snap => {
+      const lang = snap.val() || 'tr';
+      document.getElementById('panelTitle').textContent = '⚙️ Ayarlar';
+      document.getElementById('panelBody').innerHTML = `
+        <div style="text-align:left;">
+          <div style="margin-bottom:16px;">
+            <div style="color:var(--pink); font-weight:800; font-size:0.85rem; margin-bottom:6px;">🌐 Dil</div>
+            <select id="settingsLang" style="width:100%; padding:9px; border-radius:8px; background:#150F12; border:1px solid rgba(232,140,175,0.25); color:var(--text);">
+              <option value="tr" ${lang === 'tr' ? 'selected' : ''}>Türkçe</option>
+              <option value="en" ${lang === 'en' ? 'selected' : ''}>English</option>
+            </select>
+            <div style="color:var(--muted); font-size:0.68rem; margin-top:4px;">Not: tercih kaydedilir, arayüzün tamamının çevirisi yakında eklenecek.</div>
+            <button onclick="saveSettingsLang()" style="margin-top:8px; padding:8px 14px; border-radius:8px; border:none; background:linear-gradient(135deg,var(--pink),var(--pink-hot)); color:#fff; font-weight:700; cursor:pointer; font-size:0.78rem;">Kaydet</button>
+          </div>
+
+          <div style="margin-bottom:16px; border-top:1px solid rgba(232,140,175,0.15); padding-top:14px;">
+            <div style="color:var(--pink); font-weight:800; font-size:0.85rem; margin-bottom:6px;">🔒 Şifre Değiştir</div>
+            <input id="settingsOldPass" type="password" placeholder="Mevcut şifre" style="width:100%; padding:9px; border-radius:8px; margin-bottom:6px; background:#150F12; border:1px solid rgba(232,140,175,0.25); color:var(--text);">
+            <input id="settingsNewPass" type="password" placeholder="Yeni şifre" style="width:100%; padding:9px; border-radius:8px; margin-bottom:6px; background:#150F12; border:1px solid rgba(232,140,175,0.25); color:var(--text);">
+            <button onclick="changePassword()" style="padding:8px 14px; border-radius:8px; border:none; background:linear-gradient(135deg,var(--pink),var(--pink-hot)); color:#fff; font-weight:700; cursor:pointer; font-size:0.78rem;">Şifreyi Güncelle</button>
+            <div id="settingsPassMsg" style="color:var(--muted); font-size:0.72rem; margin-top:6px;"></div>
+          </div>
+
+          <div style="margin-bottom:16px; border-top:1px solid rgba(232,140,175,0.15); padding-top:14px;">
+            <div style="color:var(--pink); font-weight:800; font-size:0.85rem; margin-bottom:6px;">🧪 Test: Rozet Ekle/Çıkar</div>
+            <div style="color:var(--muted); font-size:0.68rem; margin-bottom:6px;">Bu sadece görünümü test etmek için — gerçek şartları sağlamadan rozeti kendine ekleyip çıkarabilirsin.</div>
+            <select id="settingsBadgeSelect" style="width:100%; padding:9px; border-radius:8px; background:#150F12; border:1px solid rgba(232,140,175,0.25); color:var(--text);">
+              ${Object.keys(BADGE_INFO).map(b => `<option value="${b}">${BADGE_INFO[b].icon} ${b}</option>`).join('')}
+            </select>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <button onclick="testAddBadge()" style="flex:1; padding:8px; border-radius:8px; border:none; background:linear-gradient(135deg,var(--pink),var(--pink-hot)); color:#fff; font-weight:700; cursor:pointer; font-size:0.75rem;">Ekle</button>
+              <button onclick="testRemoveBadge()" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--pink-hot); background:transparent; color:var(--pink); font-weight:700; cursor:pointer; font-size:0.75rem;">Çıkar</button>
+            </div>
+          </div>
+
+          <div style="margin-bottom:16px; border-top:1px solid rgba(232,140,175,0.15); padding-top:14px;">
+            <button onclick="logoutAccount()" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--pink-hot); background:transparent; color:var(--pink); font-weight:700; cursor:pointer;">🚪 Çıkış Yap</button>
+          </div>
+
+          <div style="border-top:1px solid rgba(232,140,175,0.15); padding-top:14px;">
+            <button onclick="deleteAccount()" style="width:100%; padding:10px; border-radius:8px; border:1px solid #C81D4B; background:transparent; color:#C81D4B; font-weight:700; cursor:pointer;">🗑️ Hesabı Sil</button>
+          </div>
+        </div>`;
+      document.getElementById('sidePanel').classList.add('active');
+    });
+  }
+
+  function testAddBadge() {
+    const badge = document.getElementById('settingsBadgeSelect').value;
+    db.ref('users/' + currentPlayerName + '/badges').transaction(list => {
+      list = list || [];
+      if (!list.includes(badge)) list.push(badge);
+      return list;
+    }).then(() => alert(badge + ' rozeti eklendi. Profilini açıp bakabilirsin.'));
+  }
+
+  function testRemoveBadge() {
+    const badge = document.getElementById('settingsBadgeSelect').value;
+    db.ref('users/' + currentPlayerName + '/badges').transaction(list => {
+      list = list || [];
+      return list.filter(b => b !== badge);
+    }).then(() => alert(badge + ' rozeti çıkarıldı.'));
+  }
+
+  function saveSettingsLang() {
+    const lang = document.getElementById('settingsLang').value;
+    db.ref('users/' + currentPlayerName + '/lang').set(lang);
+    alert('Dil tercihi kaydedildi.');
+  }
+
+  function changePassword() {
+    const oldPass = document.getElementById('settingsOldPass').value;
+    const newPass = document.getElementById('settingsNewPass').value;
+    const msg = document.getElementById('settingsPassMsg');
+    msg.textContent = '';
+    if (!oldPass || !newPass) { msg.textContent = 'Her iki alanı da doldur.'; return; }
+    if (newPass.length < 6) { msg.textContent = 'Yeni şifre en az 6 karakter olmalı.'; return; }
+    const user = auth.currentUser;
+    if (!user) { msg.textContent = 'Oturum bulunamadı, tekrar giriş yap.'; return; }
+    const cred = firebase.auth.EmailAuthProvider.credential(user.email, oldPass);
+    user.reauthenticateWithCredential(cred).then(() => {
+      return user.updatePassword(newPass);
+    }).then(() => {
+      document.getElementById('settingsOldPass').value = '';
+      document.getElementById('settingsNewPass').value = '';
+      msg.style.color = '#7FBF3F';
+      msg.textContent = 'Şifre güncellendi ✓';
+    }).catch(e => {
+      if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') msg.textContent = 'Mevcut şifre yanlış.';
+      else msg.textContent = 'Bir hata oluştu: ' + e.message;
+    });
+  }
+
+  function logoutAccount() {
+    if (!confirm('Çıkış yapmak istediğine emin misin?')) return;
+    if (currentRoomCode) leaveRoom();
+    auth.signOut().then(() => {
+      currentPlayerName = null;
+      safeLocalRemove('flx_currentUser');
+      closePanel();
+      document.getElementById('lobbyScreen').classList.remove('active');
+      document.getElementById('authScreen').classList.add('active');
+    });
+  }
+
+  function deleteAccount() {
+    if (!confirm('Hesabını KALICI olarak silmek istediğine emin misin? Bu geri alınamaz.')) return;
+    if (!confirm('Son kez soruyorum: gerçekten silinsin mi?')) return;
+    const name = currentPlayerName;
+    const user = auth.currentUser;
+    Promise.all([
+      db.ref('usernames/' + name.toLowerCase()).remove(),
+      db.ref('users/' + name).remove()
+    ]).then(() => user && user.delete()).catch(() => {}).finally(() => {
+      safeLocalRemove('flx_currentUser');
+      currentPlayerName = null;
+      closePanel();
+      document.getElementById('lobbyScreen').classList.remove('active');
+      document.getElementById('authScreen').classList.add('active');
+    });
+  }
+
+  // ================= HARİTA / HAREKET (yan bakışlı) =================
+  const MAP_ZONES = [
+    { id: 'bahce', name: 'Bahçe', width: 420, bg: 'linear-gradient(180deg,#8FC7EF 0%,#8FC7EF 58%,#7CB56A 58%,#4F8A3F 100%)', deco: ['🌳', '🌸', '🌼', '🌳'] },
+    { id: 'havuz', name: 'Havuz', width: 420, bg: 'linear-gradient(180deg,#A9E1EF 0%,#A9E1EF 46%,#2E9FC7 46%,#1C7A9C 100%)', deco: ['🏖️', '🌊', '☂️'] },
+    { id: 'mutfak', name: 'Mutfak', width: 400, bg: 'linear-gradient(180deg,#F4E3C9 0%,#F4E3C9 62%,#C9A876 62%,#A9895D 100%)', deco: ['🍳', '🍽️', '🧁'] },
+    { id: 'oturma', name: 'Oturma Odası', width: 420, bg: 'linear-gradient(180deg,#E8CFE0 0%,#E8CFE0 62%,#B98FA8 62%,#8E6A80 100%)', deco: ['🛋️', '📺', '🕯️'] },
+    { id: 'yatak', name: 'Yatak Odası', width: 460, bg: 'linear-gradient(180deg,#D9C7EE 0%,#D9C7EE 62%,#A98FC9 62%,#7A5FA0 100%)', deco: ['🛏️', '🪞', '🕯️'], tunnel: true },
+  ];
+  const SECRET_ZONE = { id: 'gizli', name: 'Gizli Oda', width: 460, bg: 'radial-gradient(circle at 50% 42%, #3A0F5C 0%, #12021E 72%)', deco: ['✨', '💜', '🌟', '✨'] };
+  const MAP_SPEED = 95; // px/sn
+  const TUNNEL_ZONE_MARGIN = 70; // yatak odasının son 70px'i "yatağın yanı" sayılır
+
+  function mapTotalWidth() { return MAP_ZONES.reduce((s, z) => s + z.width, 0); }
+  function mapZoneOffset(idx) { let o = 0; for (let i = 0; i < idx; i++) o += MAP_ZONES[i].width; return o; }
+
+  let mapPlayerX = 40;
+  let mapJoyVX = 0;
+  let mapAnimId = null;
+  let mapLastTs = null;
+  let mapInSecret = false;
+  let mapPosListenerCb = null;
+  let mapLastSyncTs = 0;
+  let mapLastActionRefreshTs = 0;
+  let latestPositions = {};       // rooms/{code}/positions — diğer oyuncuların canlı konumu
+  let latestGameForActions = null; // en son bilinen oyun durumu (pozisyon değişince aksiyon alanını yenilemek için)
+  const PROXIMITY_RANGE = 55;      // px — katil/şerifin "yakın" sayılması için mesafe eşiği
+
+  // İki oyuncunun gerçekten "yakın" olup olmadığını kontrol eder: aynı bölgede (gizli oda/normal harita
+  // aynı olmalı) VE aradaki mesafe eşiğin altında olmalı. Pozisyon bilinmiyorsa (henüz senkronlanmamışsa)
+  // güvenli tarafta kalıp "yakın değil" döner.
+  function distanceToPlayer(name) {
+    const other = latestPositions[name];
+    if (!other) return null;
+    if (!!other.secret !== mapInSecret) return null; // farklı bölgede (biri tünelde, diğeri değil)
+    return Math.abs(mapPlayerX - other.x);
+  }
+  function isNearMe(name) {
+    const d = distanceToPlayer(name);
+    return d !== null && d <= PROXIMITY_RANGE;
+  }
+
+  function buildMapWorld() {
+    const world = document.getElementById('mapWorld');
+    world.innerHTML = '';
+    const zones = mapInSecret ? [SECRET_ZONE] : MAP_ZONES;
+    zones.forEach(z => {
+      const seg = document.createElement('div');
+      seg.style.cssText = `width:${z.width}px; height:100%; flex-shrink:0; position:relative; background:${z.bg};`;
+      const label = document.createElement('div');
+      label.style.cssText = 'position:absolute; top:8px; left:10px; font-size:0.7rem; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6);';
+      label.textContent = z.name;
+      seg.appendChild(label);
+      z.deco.forEach((emoji, i) => {
+        const d = document.createElement('div');
+        d.style.cssText = `position:absolute; font-size:1.5rem; left:${18 + i * (z.width / z.deco.length)}px; bottom:16px; opacity:0.9; filter:drop-shadow(0 2px 3px rgba(0,0,0,0.4));`;
+        d.textContent = emoji;
+        seg.appendChild(d);
+      });
+      world.appendChild(seg);
+    });
+    world.querySelectorAll('.mapToken').forEach(t => t.remove());
+  }
+
+  function mapTokenEl(name, isMe) {
+    let el = document.getElementById('mapToken_' + name);
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'mapToken_' + name;
+      el.className = 'mapToken';
+      el.style.cssText = 'position:absolute; bottom:6px; width:32px; height:42px; background-size:contain; background-repeat:no-repeat; background-position:bottom center; transition:left 0.12s linear;';
+      const tag = document.createElement('div');
+      tag.style.cssText = 'position:absolute; top:-16px; left:50%; transform:translateX(-50%); font-size:0.6rem; font-weight:800; color:#fff; text-shadow:0 1px 2px #000; white-space:nowrap;';
+      tag.textContent = isMe ? 'sen' : name;
+      el.appendChild(tag);
+      document.getElementById('mapWorld').appendChild(el);
+    }
+    return el;
+  }
+
+  function updatePlayerToken() {
+    const el = mapTokenEl(currentPlayerName, true);
+    el.style.left = mapPlayerX + 'px';
+    if (currentAvatar && currentAvatar.color && !el.dataset.painted) {
+      const snap = renderAvatarSnapshot(currentAvatar, 64);
+      if (snap) { el.style.backgroundImage = `url('${snap}')`; el.dataset.painted = '1'; }
+    }
+  }
+
+  function updateCamera() {
+    const viewport = document.getElementById('mapViewport');
+    const vw = viewport.clientWidth;
+    const total = mapInSecret ? SECRET_ZONE.width : mapTotalWidth();
+    let camX = mapPlayerX - vw / 2;
+    camX = Math.max(0, Math.min(Math.max(0, total - vw), camX));
+    document.getElementById('mapWorld').style.transform = `translateX(${-camX}px)`;
+  }
+
+  function updateTunnelPrompt() {
+    const promptEl = document.getElementById('mapTunnelPrompt');
+    if (mapInSecret) { promptEl.style.display = 'none'; return; }
+    const yatakIdx = MAP_ZONES.findIndex(z => z.tunnel);
+    const yatakOffset = mapZoneOffset(yatakIdx);
+    const yatakEnd = yatakOffset + MAP_ZONES[yatakIdx].width;
+    const near = mapPlayerX >= (yatakEnd - TUNNEL_ZONE_MARGIN) && mapPlayerX <= yatakEnd;
+    promptEl.style.display = near ? 'block' : 'none';
+  }
+
+  function enterSecretRoom() {
+    mapInSecret = true;
+    mapPlayerX = 40;
+    buildMapWorld();
+    updatePlayerToken();
+    updateCamera();
+    document.getElementById('mapTunnelPrompt').style.display = 'none';
+    document.getElementById('mapExitPrompt').style.display = 'block';
+    syncMapPosition(true);
+  }
+  function exitSecretRoom() {
+    mapInSecret = false;
+    const yatakIdx = MAP_ZONES.findIndex(z => z.tunnel);
+    mapPlayerX = mapZoneOffset(yatakIdx) + MAP_ZONES[yatakIdx].width - TUNNEL_ZONE_MARGIN / 2;
+    buildMapWorld();
+    updatePlayerToken();
+    updateCamera();
+    document.getElementById('mapExitPrompt').style.display = 'none';
+    syncMapPosition(true);
+  }
+
+  function syncMapPosition(force) {
+    if (!currentRoomCode) return;
+    const now = Date.now();
+    if (!force && now - mapLastSyncTs < 150) return;
+    mapLastSyncTs = now;
+    db.ref('rooms/' + currentRoomCode + '/positions/' + currentPlayerName).set({ x: Math.round(mapPlayerX), secret: mapInSecret });
+  }
+
+  function renderOtherPositions(positions) {
+    latestPositions = positions || {};
+    // Katil/şerif ise ve pozisyonlar değiştiyse, "kimi öldürüyorsun/kime ateş ediyorsun" listesi
+    // gerçek yakınlığa göre anlık güncellensin.
+    if (latestGameForActions && latestGameForActions.phase === 'playing') {
+      renderActionArea(latestGameForActions);
+    }
+    if (!positions) return;
+    Object.keys(positions).forEach(name => {
+      if (name === currentPlayerName) return;
+      const p = positions[name];
+      if (!!p.secret !== mapInSecret) {
+        const el = document.getElementById('mapToken_' + name);
+        if (el) el.remove();
+        return;
+      }
+      const el = mapTokenEl(name, false);
+      el.style.left = p.x + 'px';
+      if (!el.dataset.painted) {
+        db.ref('users/' + name + '/avatar/snapshotUrl').get().then(snap => {
+          const url = snap.val();
+          if (url) { el.style.backgroundImage = `url('${url}')`; el.dataset.painted = '1'; }
+        });
+      }
+    });
+  }
+
+  function mapLoopStep(ts) {
+    if (mapLastTs == null) mapLastTs = ts;
+    const dt = Math.min(0.05, (ts - mapLastTs) / 1000);
+    mapLastTs = ts;
+    if (Math.abs(mapJoyVX) > 0.06) {
+      const total = mapInSecret ? SECRET_ZONE.width : mapTotalWidth();
+      mapPlayerX += mapJoyVX * MAP_SPEED * dt;
+      mapPlayerX = Math.max(18, Math.min(total - 18, mapPlayerX));
+      updatePlayerToken();
+      updateCamera();
+      updateTunnelPrompt();
+      syncMapPosition(false);
+      if (ts - (mapLastActionRefreshTs || 0) > 200 && latestGameForActions && latestGameForActions.phase === 'playing') {
+        mapLastActionRefreshTs = ts;
+        renderActionArea(latestGameForActions);
+      }
+    }
+    mapAnimId = requestAnimationFrame(mapLoopStep);
+  }
+
+  let mapJoystickInit = false;
+  function setupMapJoystick() {
+    if (mapJoystickInit) return;
+    mapJoystickInit = true;
+    const base = document.getElementById('mapJoystickBase');
+    const knob = document.getElementById('mapJoystickKnob');
+    const maxR = 19;
+    let dragging = false;
+    function handle(clientX) {
+      const rect = base.getBoundingClientRect();
+      let dx = clientX - (rect.left + rect.width / 2);
+      dx = Math.max(-maxR, Math.min(maxR, dx));
+      knob.style.left = (19 + dx) + 'px';
+      mapJoyVX = dx / maxR;
+    }
+    function reset() { knob.style.left = '19px'; mapJoyVX = 0; dragging = false; }
+    base.addEventListener('pointerdown', e => { dragging = true; handle(e.clientX); e.preventDefault(); });
+    window.addEventListener('pointermove', e => { if (dragging) handle(e.clientX); });
+    window.addEventListener('pointerup', reset);
+    window.addEventListener('pointercancel', reset);
+  }
+
+  function startMap() {
+    setupMapJoystick();
+    mapInSecret = false;
+    mapPlayerX = 40;
+    buildMapWorld();
+    db.ref('users/' + currentPlayerName + '/avatar').get().then(snap => {
+      if (snap.exists()) currentAvatar = snap.val();
+      updatePlayerToken();
+    });
+    updateCamera();
+    if (currentRoomCode) {
+      mapPosListenerCb = db.ref('rooms/' + currentRoomCode + '/positions').on('value', s => renderOtherPositions(s.val()));
+      syncMapPosition(true);
+    }
+    mapLastTs = null;
+    if (!mapAnimId) mapAnimId = requestAnimationFrame(mapLoopStep);
+  }
+  function stopMap() {
+    if (mapAnimId) { cancelAnimationFrame(mapAnimId); mapAnimId = null; }
+    if (currentRoomCode && mapPosListenerCb) {
+      db.ref('rooms/' + currentRoomCode + '/positions').off('value', mapPosListenerCb);
+      mapPosListenerCb = null;
+      db.ref('rooms/' + currentRoomCode + '/positions/' + currentPlayerName).remove();
+    }
+  }
+
+  function listenGameState(code) {
+    const gameRef = db.ref('rooms/' + code + '/game');
+    const cb = gameRef.on('value', snapshot => {
+      const game = snapshot.val();
+      latestGameForActions = game;
+      if (!game) {
+        document.getElementById('roomLobbyPart').style.display = 'block';
+        document.getElementById('gameArea').style.display = 'none';
+        document.getElementById('discussionPanel').style.display = 'none';
+        document.getElementById('gameEndPanel').style.display = 'none';
+        setActiveChatChannel(null);
+        stopMap();
+        return;
+      }
+      if (game.phase === 'playing') {
+        document.getElementById('roomLobbyPart').style.display = 'none';
+        document.getElementById('gameArea').style.display = 'flex';
+        document.getElementById('discussionPanel').style.display = 'none';
+        document.getElementById('gameEndPanel').style.display = 'none';
+        if (discussionTimerInterval) { clearInterval(discussionTimerInterval); discussionTimerInterval = null; }
+        if (game.roles[currentPlayerName]) {
+          renderRoleCard(game);
+          renderActionArea(game);
+          renderReportArea(game);
+        }
+        setActiveChatChannel(game.alive[currentPlayerName] === false ? 'ghost' : 'living');
+        startMap();
+      } else if (game.phase === 'discussion') {
+        document.getElementById('roomLobbyPart').style.display = 'none';
+        document.getElementById('gameArea').style.display = 'none';
+        document.getElementById('gameEndPanel').style.display = 'none';
+        renderDiscussionPanel(game);
+        setActiveChatChannel(game.alive[currentPlayerName] === false ? 'ghost' : 'living');
+        stopMap();
+      } else if (game.phase === 'ended') {
+        showGameEnd(game);
+        stopMap();
+      }
+    });
+    roomListeners.push({ ref: gameRef, event: 'value', cb });
+  }
+</script>
+</body>
+</html>
